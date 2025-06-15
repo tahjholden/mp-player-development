@@ -61,22 +61,26 @@ const NewDashboardUpdated = () => {
     const fetchData = async () => {
       try {
         const [
-          { data: pdpsData, error: pdpsError },
           { data: playersData, error: playersError },
-          { data: observationsData, error: observationsError }
+          { data: observationsData, error: observationsError },
+          { data: pdpsData, error: pdpsError },
+          { data: coachesData, error: coachesError }
         ] = await Promise.all([
-          supabase.from(TABLES.PDP).select('*'),
           supabase.from(TABLES.PLAYERS).select('*'),
-          supabase.from(TABLES.OBSERVATIONS).select('*')
+          supabase.from(TABLES.OBSERVATIONS).select('*'),
+          supabase.from(TABLES.PDP).select('*'),
+          supabase.from(TABLES.COACHES).select('*')
         ]);
 
-        if (pdpsError) throw pdpsError;
         if (playersError) throw playersError;
         if (observationsError) throw observationsError;
+        if (pdpsError) throw pdpsError;
+        if (coachesError) throw coachesError;
 
-        setPdps(pdpsData || []);
         setPlayers(playersData || []);
         setObservations(observationsData || []);
+        setPdps(pdpsData || []);
+        setCoaches(coachesData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError(error.message);
@@ -87,6 +91,38 @@ const NewDashboardUpdated = () => {
 
     fetchData();
   }, []);
+
+  const getPlayerStats = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getCoachStats = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.COACHES)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getObservationStats = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.OBSERVATIONS)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getPlayerDistribution = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
 
   const getActivePdps = async () => {
     const { data, error } = await supabase
@@ -129,6 +165,14 @@ const NewDashboardUpdated = () => {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(5);
+    if (error) throw error;
+    return data;
+  };
+
+  const getPlayerPerformance = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
     if (error) throw error;
     return data;
   };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -29,35 +29,31 @@ const PlayerList = ({ onViewPDPHistory, onUpdatePDP }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchPlayers();
+    const fetchData = async () => {
+      try {
+        const [
+          { data: playersData, error: playersError },
+          { data: observationsData, error: observationsError }
+        ] = await Promise.all([
+          supabase.from(TABLES.PLAYERS).select('*'),
+          supabase.from(TABLES.OBSERVATIONS).select('*')
+        ]);
+
+        if (playersError) throw playersError;
+        if (observationsError) throw observationsError;
+
+        setPlayers(playersData || []);
+        setObservations(observationsData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
-
-  const fetchPlayers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [
-        { data: playersData, error: playersError },
-        { data: observationsData, error: observationsError }
-      ] = await Promise.all([
-        supabase.from('players').select('*'),
-        supabase.from('observations').select('*')
-      ]);
-
-      if (playersError) throw playersError;
-      if (observationsError) throw observationsError;
-
-      setPlayers(playersData || []);
-      setObservations(observationsData || []);
-
-    } catch (err) {
-      console.error('Error fetching players:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getPlayerObservations = (playerId) => {
     return observations.filter(obs => obs.playerId === playerId);

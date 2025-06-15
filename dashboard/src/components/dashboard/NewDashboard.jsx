@@ -60,22 +60,55 @@ const NewDashboard = () => {
     const fetchData = async () => {
       try {
         const [
-          { data: pdpsData, error: pdpsError },
           { data: playersData, error: playersError },
-          { data: observationsData, error: observationsError }
+          { data: observationsData, error: observationsError },
+          { data: pdpsData, error: pdpsError },
+          { data: coachesData, error: coachesError }
         ] = await Promise.all([
-          supabase.from(TABLES.PDP).select('*'),
           supabase.from(TABLES.PLAYERS).select('*'),
-          supabase.from(TABLES.OBSERVATIONS).select('*')
+          supabase.from(TABLES.OBSERVATIONS).select('*'),
+          supabase.from(TABLES.PDP).select('*'),
+          supabase.from(TABLES.COACHES).select('*')
         ]);
 
-        if (pdpsError) throw pdpsError;
         if (playersError) throw playersError;
         if (observationsError) throw observationsError;
+        if (pdpsError) throw pdpsError;
+        if (coachesError) throw coachesError;
 
-        setPdps(pdpsData || []);
         setPlayers(playersData || []);
         setObservations(observationsData || []);
+        setPdps(pdpsData || []);
+        setCoaches(coachesData || []);
+
+        // Calculate stats
+        const activePdps = pdpsData?.filter(pdp => pdp.active) || [];
+        const highPerformers = playersData?.filter(player => player.skill_level >= 8) || [];
+
+        // Get current week observations (Monday-Sunday)
+        const currentDate = new Date();
+        const startOfWeek = new Date(currentDate);
+        const dayOfWeek = currentDate.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday (0)
+        startOfWeek.setDate(currentDate.getDate() - diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        
+        const weeklyObservationsCount = observationsData?.filter(obs => {
+          const obsDate = new Date(obs.observation_date);
+          return obsDate >= startOfWeek && obsDate <= endOfWeek;
+        }).length || 0;
+
+        setStats({
+          playerCount: playersData?.length || 0,
+          observationCount: weeklyObservationsCount,
+          pdpCount: activePdps.length,
+          highPerformers: highPerformers.length
+        });
+
       } catch (error) {
         console.error('Error fetching data:', error);
         setError(error.message);
@@ -296,6 +329,38 @@ const NewDashboard = () => {
     }
   };
 
+  const getPlayerStats = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getCoachStats = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.COACHES)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getObservationStats = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.OBSERVATIONS)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getPlayerDistribution = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
   const getActivePdps = async () => {
     const { data, error } = await supabase
       .from(TABLES.PDP)
@@ -337,6 +402,14 @@ const NewDashboard = () => {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(5);
+    if (error) throw error;
+    return data;
+  };
+
+  const getPlayerPerformance = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
     if (error) throw error;
     return data;
   };
