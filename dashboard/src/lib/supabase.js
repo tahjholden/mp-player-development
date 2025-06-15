@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
-import { Player } from '../models/Player';
-import { Coach } from '../models/Coach';
-import { Parent } from '../models/Parent';
-import { Observation } from '../models/Observation';
-import { PDP } from '../models/PDP';
+import { Player } from 'src/models/Player';
+import { Coach } from 'src/models/Coach';
+import { Parent } from 'src/models/Parent';
+import { Observation } from 'src/models/Observation';
+import { PDP } from 'src/models/PDP';
 
 // Supabase connection configuration
 const supabaseUrl = 'https://lzxohcvxsmsmabvseulj.supabase.co';
