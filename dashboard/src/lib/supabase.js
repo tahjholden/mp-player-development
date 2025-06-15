@@ -6,14 +6,14 @@ import { Observation } from 'src/models/Observation';
 import { PDP } from 'src/models/PDP';
 
 // Supabase connection configuration
-const supabaseUrl = 'https://lzxohcvxsmsmabvseulj.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6eG9oY3Z4c21zbWFidnNldWxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3OTc5ODIsImV4cCI6MjA2MjM3Mzk4Mn0.AXbsgPx54swWdGOEpSmJO9e16Of3TToClA-chQgh4Ag';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Table prefixes for the current session
 const tablePrefix = 'mpb_4ivic_';
 
 // Create a single supabase client for interacting with your database
-export const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Table names
 export const TABLES = {
