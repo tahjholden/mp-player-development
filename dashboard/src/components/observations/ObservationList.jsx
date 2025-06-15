@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
+  Box,
+  Button,
   Card,
   CardContent,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Button,
-  Box,
+  Grid,
+  Alert,
   CircularProgress,
-  Alert
 } from '@mui/material';
-import {
-  Visibility as VisibilityIcon,
-  Add as AddIcon
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import { format } from 'date-fns';
 
 const ObservationList = () => {
   const navigate = useNavigate();
@@ -73,65 +67,56 @@ const ObservationList = () => {
     return coach ? coach.name : 'Unknown Coach';
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box p={2}>
-        <Alert severity="error">Error loading observations: {error}</Alert>
-      </Box>
-    );
-  }
-
   return (
-    <Card>
-      <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6">Observations</Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/observations/new')}
-          >
-            Add Observation
-          </Button>
-        </Box>
-        <List>
+    <Box>
+      {loading ? (
+        <CircularProgress />
+      ) : error ? (
+        <Alert severity="error">Error loading observations: {error}</Alert>
+      ) : (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h5">Observations</Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/observations/new')}
+              >
+                New Observation
+              </Button>
+            </Box>
+          </Grid>
           {observations.map((observation) => (
-            <ListItem key={observation.id} divider>
-              <ListItemText
-                primary={getPlayerName(observation.playerId)}
-                secondary={
-                  <>
-                    <Typography component="span" variant="body2" color="textPrimary">
-                      {new Date(observation.created_at).toLocaleDateString()}
-                    </Typography>
-                    {' — '}
-                    {observation.notes}
-                  </>
-                }
-              />
-              <ListItemSecondaryAction>
-                <IconButton
-                  edge="end"
-                  aria-label="view observation"
-                  onClick={() => navigate(`/observations/${observation.id}`)}
-                >
-                  <VisibilityIcon />
-                </IconButton>
-              </ListItemSecondaryAction>
-            </ListItem>
+            <Grid item xs={12} md={6} lg={4} key={observation.id}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {observation.summary}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" gutterBottom>
+                    Date: {format(new Date(observation.observation_date), 'MM/dd/yyyy')}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" gutterBottom>
+                    Type: {observation.type}
+                  </Typography>
+                  <Box mt={2}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => navigate(`/observations/${observation.id}`)}
+                    >
+                      View Details
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           ))}
-        </List>
-      </CardContent>
-    </Card>
+        </Grid>
+      )}
+    </Box>
   );
 };
 
