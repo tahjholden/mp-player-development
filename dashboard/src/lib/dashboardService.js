@@ -197,19 +197,3 @@ export const dashboardService = {
     }
   }
 };
-
-export function getAreaChartData() {
-  return [];
-}
-export function getBarChartData() {
-  return [];
-}
-export function getPieChartData() {
-  return [];
-}
-export function getLineChartData() {
-  return [];
-}
-export function getRadarChartData() {
-  return [];
-}
