@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd dashboard && pnpm run build",
+  "buildCommand": "pnpm install && pnpm run build",
   "outputDirectory": "dashboard/dist",
   "framework": "vite",
   "rewrites": [
