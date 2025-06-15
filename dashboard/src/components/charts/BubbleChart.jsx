@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 
 const BubbleChart = () => {
   const [data, setData] = useState([]);
@@ -11,24 +11,24 @@ const BubbleChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: players, error } = await supabase
-          .from('players')
+        const { data, error } = await supabase
+          .from(TABLES.PLAYERS)
           .select('*');
 
         if (error) throw error;
 
-        // Transform player data for the bubble chart
-        const chartData = players?.map(player => ({
-          x: player.skill_level * 50, // Scale skill level to x-axis
-          y: player.observation_count * 20, // Scale observation count to y-axis
-          z: player.pdp_progress * 5, // Scale PDP progress to bubble size
-          name: player.name,
-          color: `#${Math.floor(Math.random()*16777215).toString(16)}` // Random color
-        })) || [];
+        // Process data for bubble chart
+        const processedData = data.map(player => ({
+          x: player.age || 0,
+          y: player.rating || 0,
+          z: player.experience || 0,
+          name: `${player.first_name} ${player.last_name}`
+        }));
 
-        setData(chartData);
-      } catch (err) {
-        setError(err.message);
+        setData(processedData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
       } finally {
         setLoading(false);
       }
@@ -72,22 +72,22 @@ const BubbleChart = () => {
           <XAxis 
             type="number" 
             dataKey="x" 
-            name="Skill Level" 
+            name="Age" 
             domain={domain} 
-            label={{ value: 'Skill Level', position: 'insideBottom', offset: -5 }} 
+            label={{ value: 'Age', position: 'insideBottom', offset: -5 }} 
           />
           <YAxis 
             type="number" 
             dataKey="y" 
-            name="Observations" 
+            name="Rating" 
             domain={domain} 
-            label={{ value: 'Observations', angle: -90, position: 'insideLeft' }} 
+            label={{ value: 'Rating', angle: -90, position: 'insideLeft' }} 
           />
           <ZAxis 
             type="number" 
             dataKey="z" 
             range={[50, 400]} 
-            name="PDP Progress" 
+            name="Experience" 
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
@@ -96,7 +96,7 @@ const BubbleChart = () => {
               key={index} 
               name={entry.name} 
               data={[entry]} 
-              fill={entry.color}
+              fill="#8884d8"
               shape="circle"
             />
           ))}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 
 const BarChartComponent = () => {
   const [data, setData] = useState([]);
@@ -10,32 +10,26 @@ const BarChartComponent = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: players, error } = await supabase
-          .from('players')
+        const { data, error } = await supabase
+          .from(TABLES.PLAYERS)
           .select('*');
 
         if (error) throw error;
 
-        // Group players by skill level
-        const skillLevelData = players?.reduce((acc, player) => {
-          const level = player.skill_level || 0;
-          if (!acc[level]) {
-            acc[level] = {
-              name: `Level ${level}`,
-              players: 0,
-              active: 0
-            };
+        // Process data for bar chart
+        const processedData = data.reduce((acc, player) => {
+          const position = player.position || 'Unknown';
+          if (!acc[position]) {
+            acc[position] = { position, count: 0 };
           }
-          acc[level].players++;
-          if (player.status === 'Active') {
-            acc[level].active++;
-          }
+          acc[position].count++;
           return acc;
         }, {});
 
-        setData(Object.values(skillLevelData || {}));
-      } catch (err) {
-        setError(err.message);
+        setData(Object.values(processedData));
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
       } finally {
         setLoading(false);
       }
@@ -49,7 +43,7 @@ const BarChartComponent = () => {
 
   return (
     <div className="h-72">
-      <h2 className="text-lg font-medium text-gray-800 mb-4">Players by Skill Level</h2>
+      <h2 className="text-lg font-medium text-gray-800 mb-4">Players by Position</h2>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -61,12 +55,11 @@ const BarChartComponent = () => {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
+          <XAxis dataKey="position" />
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="players" name="Total Players" fill="#8884d8" />
-          <Bar dataKey="active" name="Active Players" fill="#82ca9d" />
+          <Bar dataKey="count" name="Players" fill="#8884d8" />
         </BarChart>
       </ResponsiveContainer>
     </div>

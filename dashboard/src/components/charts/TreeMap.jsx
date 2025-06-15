@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 
 const TreeMapChart = () => {
   const [data, setData] = useState([]);
@@ -10,43 +10,23 @@ const TreeMapChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: players, error } = await supabase
-          .from('players')
+        const { data, error } = await supabase
+          .from(TABLES.PLAYERS)
           .select('*');
 
         if (error) throw error;
 
-        // Group players by age group and gender
-        const groupedData = players?.reduce((acc, player) => {
-          const ageGroup = player.age_group || 'Unknown';
-          const gender = player.gender || 'Unknown';
-          
-          if (!acc[ageGroup]) {
-            acc[ageGroup] = {};
-          }
-          if (!acc[ageGroup][gender]) {
-            acc[ageGroup][gender] = 0;
-          }
-          acc[ageGroup][gender]++;
-          return acc;
-        }, {});
+        // Process data for treemap
+        const processedData = data.map(player => ({
+          name: `${player.first_name} ${player.last_name}`,
+          size: player.rating || 0,
+          fill: `hsl(${Math.random() * 360}, 70%, 50%)`
+        }));
 
-        // Transform data for TreeMap
-        const treeData = {
-          name: 'Player Distribution',
-          children: Object.entries(groupedData || {}).map(([ageGroup, genders]) => ({
-            name: ageGroup,
-            children: Object.entries(genders).map(([gender, count]) => ({
-              name: gender,
-              size: count,
-              color: `#${Math.floor(Math.random()*16777215).toString(16)}` // Random color
-            }))
-          }))
-        };
-
-        setData([treeData]);
-      } catch (err) {
-        setError(err.message);
+        setData(processedData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
       } finally {
         setLoading(false);
       }
@@ -124,9 +104,9 @@ const TreeMapChart = () => {
         <Treemap
           data={data}
           dataKey="size"
-          ratio={4/3}
-          stroke="#fff"
+          nameKey="name"
           fill="#8884d8"
+          stroke="#fff"
           animationDuration={1000}
           content={<CustomTreemap />}
         >
