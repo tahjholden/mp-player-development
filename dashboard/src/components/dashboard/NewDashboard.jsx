@@ -4,8 +4,26 @@ import PlayerList from './PlayerList';
 import ObservationList from './ObservationList';
 import PDPHistoryModal from './PDPHistoryModal';
 import { dashboardService } from '../../lib/dashboardService';
-import { mockPlayers, mockObservations, mockPDPs, mockPDPHistory, mockCoaches } from '../../data/mockData';
 import { FaUserPlus, FaClipboardCheck, FaChartLine } from 'react-icons/fa';
+import { supabase } from '../../lib/supabase';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Grid, 
+  Box, 
+  Button,
+  CircularProgress,
+  Alert
+} from '@mui/material';
+import { 
+  People as PeopleIcon, 
+  Assessment as AssessmentIcon,
+  Assignment as AssignmentIcon,
+  Person as PersonIcon,
+  Add as AddIcon
+} from '@mui/icons-material';
 
 // Import new modal components
 import AddPlayerModal from './modals/AddPlayerModal';
@@ -14,14 +32,18 @@ import AddPDPModal from './modals/AddPDPModal';
 import UpdatePDPModalNew from './modals/UpdatePDPModalNew';
 
 const NewDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     playerCount: 0,
-    observationCount: 0
+    observationCount: 0,
+    pdpCount: 0,
+    highPerformers: 0
   });
   const [players, setPlayers] = useState([]);
   const [observations, setObservations] = useState([]);
   const [pdps, setPdps] = useState([]);
   const [pdpHistory, setPdpHistory] = useState([]);
+  const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -33,185 +55,89 @@ const NewDashboard = () => {
   const [showAddPDPModal, setShowAddPDPModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedPDP, setSelectedPDP] = useState(null);
-  const [coaches, setCoaches] = useState([]);
   
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Insert sample data first (only inserts if tables are empty)
-        await dashboardService.insertSampleData();
-        
-        // Fetch dashboard stats
-        const dashboardStats = await dashboardService.getDashboardStats();
-        
-        // Get current week observations (Monday-Sunday)
-        const currentDate = new Date();
-        const startOfWeek = new Date(currentDate);
-        const dayOfWeek = currentDate.getDay();
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday (0)
-        startOfWeek.setDate(currentDate.getDate() - diff);
-        startOfWeek.setHours(0, 0, 0, 0);
-        
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999);
-        
-        const weeklyObservationsCount = mockObservations.filter(obs => {
-          const obsDate = new Date(obs.date);
-          return obsDate >= startOfWeek && obsDate <= endOfWeek;
-        }).length;
-        
-        // Update stats with actual data
-        setStats({
-          playerCount: dashboardStats.playerCount || 0,
-          observationCount: weeklyObservationsCount
-        });
-        
-        // Combine mock data with any PDP summaries
-        const enhancedPlayers = mockPlayers.map(player => {
-          const playerPdp = mockPDPs.find(pdp => pdp.playerId === player.id);
-          return {
-            ...player,
-            currentPDP: playerPdp,
-            pdpSummary: playerPdp 
-              ? `${playerPdp.title} (${playerPdp.progress}% complete): ${playerPdp.goals.map(g => g.area).join(', ')}` 
-              : 'No active PDP'
-          };
-        });
-        
-        setPlayers(enhancedPlayers);
-        setObservations(mockObservations);
-        setPdps(mockPDPs);
-        setPdpHistory(mockPDPHistory);
-        setCoaches(mockCoaches || []);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data');
-        setLoading(false);
-      }
-    };
-    
     fetchDashboardData();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch all data in parallel
+      const [
+        { data: playersData, error: playersError },
+        { data: observationsData, error: observationsError },
+        { data: pdpsData, error: pdpsError },
+        { data: coachesData, error: coachesError },
+        { data: pdpHistoryData, error: pdpHistoryError }
+      ] = await Promise.all([
+        supabase.from('players').select('*'),
+        supabase.from('observations').select('*'),
+        supabase.from('pdps').select('*'),
+        supabase.from('coaches').select('*'),
+        supabase.from('pdp_history').select('*')
+      ]);
+
+      if (playersError) throw playersError;
+      if (observationsError) throw observationsError;
+      if (pdpsError) throw pdpsError;
+      if (coachesError) throw coachesError;
+      if (pdpHistoryError) throw pdpHistoryError;
+
+      setPlayers(playersData || []);
+      setObservations(observationsData || []);
+      setPdps(pdpsData || []);
+      setCoaches(coachesData || []);
+      setPdpHistory(pdpHistoryData || []);
+
+      // Calculate stats
+      const activePdps = pdpsData?.filter(pdp => pdp.status === 'In Progress') || [];
+      const highPerformers = playersData?.filter(player => player.skill_level >= 8) || [];
+
+      // Get current week observations (Monday-Sunday)
+      const currentDate = new Date();
+      const startOfWeek = new Date(currentDate);
+      const dayOfWeek = currentDate.getDay();
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday (0)
+      startOfWeek.setDate(currentDate.getDate() - diff);
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      const weeklyObservationsCount = observationsData?.filter(obs => {
+        const obsDate = new Date(obs.created_at);
+        return obsDate >= startOfWeek && obsDate <= endOfWeek;
+      }).length || 0;
+
+      setStats({
+        playerCount: playersData?.length || 0,
+        observationCount: weeklyObservationsCount,
+        pdpCount: activePdps.length,
+        highPerformers: highPerformers.length
+      });
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddPlayer = () => {
     setShowAddPlayerModal(true);
   };
 
-  const handleAddObservation = (player = null) => {
-    setSelectedPlayer(player);
+  const handleAddObservation = () => {
     setShowAddObservationModal(true);
   };
-  
+
   const handleAddPDP = () => {
     setShowAddPDPModal(true);
-  };
-  
-  // Handler for adding a new player
-  const handlePlayerSubmit = (playerData) => {
-    const newPlayer = {
-      ...playerData,
-      id: players.length + 1,
-      lastObservation: new Date().toISOString().split('T')[0],
-      pdpStatus: 'Not Started',
-      skillLevel: 5.0,
-      pdpSummary: 'No active PDP'
-    };
-    
-    setPlayers([...players, newPlayer]);
-    setShowAddPlayerModal(false);
-  };
-
-  // Handler for adding a new observation
-  const handleObservationSubmit = (observationData) => {
-    const player = players.find(p => p.id === observationData.playerId);
-    const coach = coaches.length > 0 ? coaches[0] : { id: 1, name: 'John Smith' };
-    
-    const newObservation = {
-      ...observationData,
-      id: observations.length + 1,
-      coachId: coach.id,
-      coachName: coach.name,
-      focus: observationData.notes.substring(0, 20) + '...',
-      rating: Math.floor(Math.random() * 5) + 5, // Random rating between 5-10
-      actionItems: ['Review with player']
-    };
-    
-    setObservations([...observations, newObservation]);
-    
-    // Update player's last observation date
-    const updatedPlayers = players.map(p => 
-      p.id === player.id ? { ...p, lastObservation: observationData.date } : p
-    );
-    
-    setPlayers(updatedPlayers);
-    setShowAddObservationModal(false);
-  };
-
-  // Handler for adding a new PDP
-  const handlePDPSubmit = (pdpData) => {
-    const player = players.find(p => p.id === pdpData.playerId);
-    
-    if (!player) return;
-    
-    // Create new PDP
-    const newPDP = {
-      id: pdps.length + pdpHistory.length + 1,
-      playerId: player.id,
-      playerName: player.name,
-      title: pdpData.summary,
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: null,
-      status: 'In Progress',
-      progress: 0,
-      coachId: pdpData.coachId,
-      coachName: pdpData.coachName,
-      goals: [
-        { area: 'Development', target: pdpData.summary, progress: 0 }
-      ]
-    };
-    
-    // Update PDPs state
-    const updatedPDPs = [...pdps];
-    const existingPdpIndex = updatedPDPs.findIndex(p => p.playerId === player.id);
-    
-    if (existingPdpIndex !== -1) {
-      // Archive existing PDP first
-      const existingPDP = updatedPDPs[existingPdpIndex];
-      const archivedPDP = {
-        ...existingPDP,
-        endDate: new Date().toISOString().split('T')[0],
-        status: 'Archived'
-      };
-      setPdpHistory([...pdpHistory, archivedPDP]);
-      
-      // Replace with new PDP
-      updatedPDPs[existingPdpIndex] = newPDP;
-    } else {
-      updatedPDPs.push(newPDP);
-    }
-    
-    setPdps(updatedPDPs);
-    
-    // Update players with new current PDP
-    const updatedPlayers = players.map(p => {
-      if (p.id === player.id) {
-        return {
-          ...p,
-          currentPDP: newPDP,
-          pdpSummary: `${newPDP.title} (0% complete): Development`,
-          pdpStatus: 'In Progress'
-        };
-      }
-      return p;
-    });
-    
-    setPlayers(updatedPlayers);
-    setShowAddPDPModal(false);
   };
   
   const handleViewPDPHistory = (player) => {
@@ -224,179 +150,270 @@ const NewDashboard = () => {
     setSelectedPDP(player.currentPDP);
     setShowUpdatePDPModal(true);
   };
-  
-  const handlePDPUpdate = (playerData, pdpData) => {
-    // Archive current PDP
-    if (playerData.currentPDP) {
-      const updatedPDP = {
-        ...playerData.currentPDP,
-        endDate: new Date().toISOString().split('T')[0],
-        status: 'Archived'
-      };
-      
-      // Add to PDP history 
-      setPdpHistory(prev => [...prev, updatedPDP]);
+
+  // Handler for adding a new player
+  const handlePlayerSubmit = async (playerData) => {
+    try {
+      const { data, error } = await supabase
+        .from('players')
+        .insert([{
+          ...playerData,
+          last_observation: new Date().toISOString().split('T')[0],
+          pdp_status: 'Not Started',
+          skill_level: 5.0,
+          pdp_summary: 'No active PDP'
+        }])
+        .select();
+
+      if (error) throw error;
+
+      setPlayers([...players, data[0]]);
+      setShowAddPlayerModal(false);
+      fetchDashboardData(); // Refresh data
+    } catch (err) {
+      console.error('Error adding player:', err);
+      setError(err.message);
     }
-    
-    // Create new PDP
-    const newPDP = {
-      id: pdps.length + pdpHistory.length + 1,
-      playerId: playerData.id,
-      playerName: playerData.name,
-      title: pdpData.summary,
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: null,
-      status: 'In Progress',
-      coachId: pdpData.coachId || (coaches.length > 0 ? coaches[0].id : 1),
-      coachName: pdpData.coachName || (coaches.length > 0 ? coaches[0].name : 'John Smith'),
-      progress: 0,
-      goals: [
-        { area: 'Development', target: pdpData.summary, progress: 0 }
-      ]
-    };
-    
-    // Update PDPs state
-    setPdps(prev => prev.map(p => 
-      p.playerId === playerData.id ? newPDP : p
-    ));
-    
-    // Update players with new current PDP
-    setPlayers(prev => prev.map(p => {
-      if (p.id === playerData.id) {
-        return {
-          ...p,
-          currentPDP: newPDP,
-          pdpSummary: `${newPDP.title} (0% complete): Development`
-        };
-      }
-      return p;
-    }));
-    
-    setShowUpdatePDPModal(false);
   };
+
+  // Handler for adding a new observation
+  const handleObservationSubmit = async (observationData) => {
+    try {
+      const { data: coachData } = await supabase
+        .from('coaches')
+        .select('*')
+        .limit(1)
+        .single();
+
+      const coach = coachData || { id: 1, name: 'John Smith' };
+      
+      const { data, error } = await supabase
+        .from('observations')
+        .insert([{
+          ...observationData,
+          coach_id: coach.id,
+          coach_name: coach.name,
+          focus: observationData.notes.substring(0, 20) + '...',
+          rating: Math.floor(Math.random() * 5) + 5,
+          action_items: ['Review with player']
+        }])
+        .select();
+
+      if (error) throw error;
+
+      // Update player's last observation date
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({ last_observation: observationData.date })
+        .eq('id', observationData.player_id);
+
+      if (updateError) throw updateError;
+
+      setObservations([...observations, data[0]]);
+      setShowAddObservationModal(false);
+      fetchDashboardData(); // Refresh data
+    } catch (err) {
+      console.error('Error adding observation:', err);
+      setError(err.message);
+    }
+  };
+
+  // Handler for adding a new PDP
+  const handlePDPSubmit = async (pdpData) => {
+    try {
+      const player = players.find(p => p.id === pdpData.player_id);
+      if (!player) return;
+
+      // Archive existing PDP if it exists
+      const { data: existingPDP } = await supabase
+        .from('pdps')
+        .select('*')
+        .eq('player_id', player.id)
+        .eq('status', 'In Progress')
+        .single();
+
+      if (existingPDP) {
+        const { error: archiveError } = await supabase
+          .from('pdps')
+          .update({
+            end_date: new Date().toISOString().split('T')[0],
+            status: 'Archived'
+          })
+          .eq('id', existingPDP.id);
+
+        if (archiveError) throw archiveError;
+      }
+
+      // Create new PDP
+      const { data: newPDP, error: createError } = await supabase
+        .from('pdps')
+        .insert([{
+          player_id: player.id,
+          player_name: player.name,
+          title: pdpData.summary,
+          start_date: new Date().toISOString().split('T')[0],
+          status: 'In Progress',
+          progress: 0,
+          coach_id: pdpData.coach_id,
+          coach_name: pdpData.coach_name,
+          goals: [
+            { area: 'Development', target: pdpData.summary, progress: 0 }
+          ]
+        }])
+        .select();
+
+      if (createError) throw createError;
+
+      // Update player's current PDP
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({
+          current_pdp: newPDP[0],
+          pdp_summary: `${newPDP[0].title} (0% complete): Development`,
+          pdp_status: 'In Progress'
+        })
+        .eq('id', player.id);
+
+      if (updateError) throw updateError;
+
+      setShowAddPDPModal(false);
+      fetchDashboardData(); // Refresh data
+    } catch (err) {
+      console.error('Error adding PDP:', err);
+      setError(err.message);
+    }
+  };
+  
+  const handlePDPUpdate = async (playerData, pdpData) => {
+    try {
+      // Archive current PDP
+      if (playerData.currentPDP) {
+        const { error: archiveError } = await supabase
+          .from('pdps')
+          .update({
+            end_date: new Date().toISOString().split('T')[0],
+            status: 'Archived'
+          })
+          .eq('id', playerData.currentPDP.id);
+
+        if (archiveError) throw archiveError;
+      }
+
+      // Create new PDP
+      const { data: newPDP, error: createError } = await supabase
+        .from('pdps')
+        .insert([{
+          player_id: playerData.id,
+          player_name: playerData.name,
+          title: pdpData.summary,
+          start_date: new Date().toISOString().split('T')[0],
+          status: 'In Progress',
+          progress: pdpData.progress,
+          coach_id: pdpData.coach_id,
+          coach_name: pdpData.coach_name,
+          goals: pdpData.goals
+        }])
+        .select();
+
+      if (createError) throw createError;
+
+      // Update player's current PDP
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({
+          current_pdp: newPDP[0],
+          pdp_summary: `${newPDP[0].title} (${pdpData.progress}% complete): Development`,
+          pdp_status: 'In Progress'
+        })
+        .eq('id', playerData.id);
+
+      if (updateError) throw updateError;
+
+      setShowUpdatePDPModal(false);
+      fetchDashboardData(); // Refresh data
+    } catch (err) {
+      console.error('Error updating PDP:', err);
+      setError(err.message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-900 text-white rounded-md">
-        <p>Error: {error}</p>
-        <p>Please try refreshing the page.</p>
-      </div>
+      <Box p={3}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
     );
   }
 
   return (
-    <div className="bg-gray-900 min-h-screen">
-      <div className="container mx-auto px-4 py-6">
-        <div className="bg-black text-white p-6 rounded-lg shadow-md mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-5">
-            <h1 className="text-3xl font-bold text-oldgold mb-4 md:mb-0 text-center w-full md:w-auto">MP Player Development</h1>
-            <div className="flex flex-wrap gap-4 justify-center w-full md:w-auto">
-              <button 
-                onClick={handleAddPlayer} 
-                className="bg-oldgold hover:bg-darkgold text-black font-bold py-2 px-4 rounded-lg transition duration-300"
-              >
-                Add Player
-              </button>
-              <button 
-                onClick={handleAddObservation} 
-                className="bg-oldgold hover:bg-darkgold text-black font-bold py-2 px-4 rounded-lg transition duration-300"
-              >
-                Add Observation
-              </button>
-              <button 
-                onClick={handleAddPDP} 
-                className="bg-oldgold hover:bg-darkgold text-black font-bold py-2 px-4 rounded-lg transition duration-300"
-              >
-                Add PDP
-              </button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mx-auto text-center">
-            <div className="flex items-center justify-center bg-gray-800 p-4 rounded-lg">
-              <div className="text-center w-full">
-                <span className="text-gray-400 text-sm">Players</span>
-                <div className="text-oldgold text-2xl font-bold">{stats.playerCount || players.length}</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-center bg-gray-800 p-4 rounded-lg">
-              <div className="text-center w-full">
-                <span className="text-gray-400 text-sm">Observations This Week</span>
-                <div className="text-oldgold text-2xl font-bold">{stats.observationCount}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="text-oldgold text-lg">Loading dashboard data...</div>
-          </div>
-        ) : (
-          <div className="flex flex-col lg:flex-row gap-6">
-            <div className="w-full lg:w-1/3">
-              <PlayerList 
-                players={players} 
-                onViewPDPHistory={handleViewPDPHistory}
-                onUpdatePDP={handleUpdatePDP}
-                onAddObservation={handleAddObservation}
-              />
-            </div>
-            <div className="w-full lg:w-2/3">
-              <ObservationList 
-                observations={observations} 
-              />
-            </div>
-          </div>
-        )}
-      </div>
+    <Box p={3}>
+      <TopSection 
+        playerCount={stats.playerCount}
+        observationCount={stats.observationCount}
+        pdpCount={stats.pdpCount}
+        highPerformers={stats.highPerformers}
+        onAddPlayer={handleAddPlayer}
+        onAddObservation={handleAddObservation}
+      />
       
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <PlayerList 
+            players={players}
+            onViewPDPHistory={handleViewPDPHistory}
+            onUpdatePDP={handleUpdatePDP}
+          />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <ObservationList observations={observations} />
+        </Grid>
+      </Grid>
+
       {/* Modals */}
-      {showPDPHistoryModal && selectedPlayer && (
-        <PDPHistoryModal 
-          player={selectedPlayer} 
-          pdpHistory={pdpHistory.filter(pdp => pdp.playerId === selectedPlayer.id)}
-          observations={observations.filter(obs => obs.playerId === selectedPlayer.id)}
-          onClose={() => setShowPDPHistoryModal(false)}
-        />
-      )}
+      <AddPlayerModal
+        open={showAddPlayerModal}
+        onClose={() => setShowAddPlayerModal(false)}
+        onSubmit={handlePlayerSubmit}
+      />
       
-      {showUpdatePDPModal && selectedPlayer && (
-        <UpdatePDPModalNew
-          player={selectedPlayer}
-          currentPDP={selectedPDP}
-          coaches={coaches}
-          onSubmit={handlePDPUpdate}
-          onClose={() => setShowUpdatePDPModal(false)}
-        />
-      )}
-
-      {showAddPlayerModal && (
-        <AddPlayerModal
-          onSubmit={handlePlayerSubmit}
-          onClose={() => setShowAddPlayerModal(false)}
-        />
-      )}
-
-      {showAddObservationModal && (
-        <AddObservationModal
-          players={players}
-          selectedPlayer={selectedPlayer}
-          onSubmit={handleObservationSubmit}
-          onClose={() => setShowAddObservationModal(false)}
-        />
-      )}
-
-      {showAddPDPModal && (
-        <AddPDPModal
-          players={players}
-          coaches={coaches}
-          onSubmit={handlePDPSubmit}
-          onClose={() => setShowAddPDPModal(false)}
-        />
-      )}
-    </div>
+      <AddObservationModal
+        open={showAddObservationModal}
+        onClose={() => setShowAddObservationModal(false)}
+        onSubmit={handleObservationSubmit}
+        players={players}
+      />
+      
+      <AddPDPModal
+        open={showAddPDPModal}
+        onClose={() => setShowAddPDPModal(false)}
+        onSubmit={handlePDPSubmit}
+        players={players}
+        coaches={coaches}
+      />
+      
+      <UpdatePDPModalNew
+        open={showUpdatePDPModal}
+        onClose={() => setShowUpdatePDPModal(false)}
+        onSubmit={handlePDPUpdate}
+        player={selectedPlayer}
+        pdp={selectedPDP}
+      />
+      
+      <PDPHistoryModal
+        open={showPDPHistoryModal}
+        onClose={() => setShowPDPHistoryModal(false)}
+        player={selectedPlayer}
+        pdpHistory={pdpHistory}
+      />
+    </Box>
   );
 };
 

@@ -7,13 +7,13 @@ import { PDP } from 'src/models/PDP';
 
 // Supabase connection configuration
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Table prefixes for the current session
 const tablePrefix = 'mpb_4ivic_';
 
 // Create a single supabase client for interacting with your database
-const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Table names
 export const TABLES = {

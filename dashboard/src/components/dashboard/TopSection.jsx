@@ -1,11 +1,14 @@
 import React from 'react';
 import { FaUserPlus, FaClipboardCheck, FaUsers, FaClipboardList, FaFileAlt, FaTrophy } from 'react-icons/fa';
 
-const TopSection = ({ playerCount, observationCount, onAddPlayer, onAddObservation }) => {
-  // Calculate some mock stats for demonstration
-  const pdpCount = 28; // Mock value
-  const highPerformers = 12; // Mock value
-  
+const TopSection = ({ 
+  playerCount, 
+  observationCount, 
+  pdpCount, 
+  highPerformers,
+  onAddPlayer, 
+  onAddObservation 
+}) => {
   return (
     <div className="bg-black text-white p-6 rounded-lg shadow-md mb-6">
       <div className="flex flex-col md:flex-row justify-between items-center mb-5">

@@ -1,103 +1,125 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
-
-// Sample hierarchical data for TreeMap
-const data = [
-  {
-    name: 'Product Categories',
-    children: [
-      {
-        name: 'Electronics',
-        children: [
-          { name: 'Laptops', size: 4000, color: '#8884d8' },
-          { name: 'Smartphones', size: 3800, color: '#83a6ed' },
-          { name: 'Tablets', size: 1908, color: '#8dd1e1' },
-          { name: 'Cameras', size: 1680, color: '#82ca9d' },
-        ],
-      },
-      {
-        name: 'Clothing',
-        children: [
-          { name: 'Men\'s', size: 3500, color: '#a4de6c' },
-          { name: 'Women\'s', size: 4200, color: '#d0ed57' },
-          { name: 'Kids', size: 2400, color: '#ffc658' },
-        ],
-      },
-      {
-        name: 'Home',
-        children: [
-          { name: 'Furniture', size: 3000, color: '#ff7300' },
-          { name: 'Decor', size: 2800, color: '#ff5e4d' },
-          { name: 'Kitchen', size: 2900, color: '#e14eca' },
-        ],
-      },
-    ],
-  },
-];
-
-// Custom rendering for TreeMap to make it more visually appealing
-const CustomTreemap = ({ root, depth, x, y, width, height, index, colors, name, value }) => {
-  return (
-    <g>
-      {root.children && root.children.map((node, i) => (
-        <rect
-          key={`rect-${i}`}
-          x={node.x}
-          y={node.y}
-          width={node.width}
-          height={node.height}
-          style={{
-            fill: node.children ? null : node.color,
-            stroke: '#fff',
-            strokeWidth: 2 / (depth + 1e-10),
-            strokeOpacity: 1 / (depth + 1e-10),
-          }}
-        />
-      ))}
-      
-      {/* Add text labels for larger rectangles */}
-      {root.children && root.children.map((node, i) => {
-        const fontSize = Math.min(16, Math.max(8, node.width / 8));
-        if ((node.width > 50 && node.height > 30) || node.width > 100) {
-          return (
-            <text
-              key={`text-${i}`}
-              x={node.x + node.width / 2}
-              y={node.y + node.height / 2}
-              textAnchor="middle"
-              fill="#fff"
-              fontSize={fontSize}
-              fontWeight="bold"
-              style={{ pointerEvents: 'none' }}
-            >
-              {node.name}
-            </text>
-          );
-        }
-        return null;
-      })}
-    </g>
-  );
-};
-
-// Custom tooltip for better information display
-const CustomTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    const { name, size } = payload[0].payload;
-    return (
-      <div className="bg-white p-2 border border-gray-200 shadow-sm rounded-md">
-        <p className="font-medium">{name}</p>
-        <p className="text-sm">Revenue: ${size.toLocaleString()}</p>
-      </div>
-    );
-  }
-  return null;
-};
+import { supabase } from '../../lib/supabase';
 
 const TreeMapChart = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: players, error } = await supabase
+          .from('players')
+          .select('*');
+
+        if (error) throw error;
+
+        // Group players by age group and gender
+        const groupedData = players?.reduce((acc, player) => {
+          const ageGroup = player.age_group || 'Unknown';
+          const gender = player.gender || 'Unknown';
+          
+          if (!acc[ageGroup]) {
+            acc[ageGroup] = {};
+          }
+          if (!acc[ageGroup][gender]) {
+            acc[ageGroup][gender] = 0;
+          }
+          acc[ageGroup][gender]++;
+          return acc;
+        }, {});
+
+        // Transform data for TreeMap
+        const treeData = {
+          name: 'Player Distribution',
+          children: Object.entries(groupedData || {}).map(([ageGroup, genders]) => ({
+            name: ageGroup,
+            children: Object.entries(genders).map(([gender, count]) => ({
+              name: gender,
+              size: count,
+              color: `#${Math.floor(Math.random()*16777215).toString(16)}` // Random color
+            }))
+          }))
+        };
+
+        setData([treeData]);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Custom rendering for TreeMap to make it more visually appealing
+  const CustomTreemap = ({ root, depth, x, y, width, height, index, colors, name, value }) => {
+    return (
+      <g>
+        {root.children && root.children.map((node, i) => (
+          <rect
+            key={`rect-${i}`}
+            x={node.x}
+            y={node.y}
+            width={node.width}
+            height={node.height}
+            style={{
+              fill: node.children ? null : node.color,
+              stroke: '#fff',
+              strokeWidth: 2 / (depth + 1e-10),
+              strokeOpacity: 1 / (depth + 1e-10),
+            }}
+          />
+        ))}
+        
+        {/* Add text labels for larger rectangles */}
+        {root.children && root.children.map((node, i) => {
+          const fontSize = Math.min(16, Math.max(8, node.width / 8));
+          if ((node.width > 50 && node.height > 30) || node.width > 100) {
+            return (
+              <text
+                key={`text-${i}`}
+                x={node.x + node.width / 2}
+                y={node.y + node.height / 2}
+                textAnchor="middle"
+                fill="#fff"
+                fontSize={fontSize}
+                fontWeight="bold"
+                style={{ pointerEvents: 'none' }}
+              >
+                {node.name}
+              </text>
+            );
+          }
+          return null;
+        })}
+      </g>
+    );
+  };
+
+  // Custom tooltip for better information display
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const { name, size } = payload[0].payload;
+      return (
+        <div className="bg-white p-2 border border-gray-200 shadow-sm rounded-md">
+          <p className="font-medium">{name}</p>
+          <p className="text-sm">Players: {size}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
   return (
     <div className="h-72">
-      <h2 className="text-lg font-medium text-gray-800 mb-4">Product Revenue Distribution</h2>
+      <h2 className="text-lg font-medium text-gray-800 mb-4">Player Distribution by Age Group and Gender</h2>
       <ResponsiveContainer width="100%" height="90%">
         <Treemap
           data={data}

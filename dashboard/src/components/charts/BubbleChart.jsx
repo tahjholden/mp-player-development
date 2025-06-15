@@ -1,22 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-// Sample data for 3D bubble chart
-const data = [
-  { x: 100, y: 200, z: 200, name: 'Product A', color: '#8884d8' },
-  { x: 120, y: 100, z: 260, name: 'Product B', color: '#83a6ed' },
-  { x: 170, y: 300, z: 400, name: 'Product C', color: '#8dd1e1' },
-  { x: 140, y: 250, z: 280, name: 'Product D', color: '#82ca9d' },
-  { x: 150, y: 400, z: 500, name: 'Product E', color: '#a4de6c' },
-  { x: 110, y: 280, z: 320, name: 'Product F', color: '#d0ed57' },
-  { x: 200, y: 350, z: 150, name: 'Product G', color: '#ffc658' },
-  { x: 210, y: 180, z: 390, name: 'Product H', color: '#ff7300' },
-  { x: 190, y: 220, z: 290, name: 'Product I', color: '#ff5e4d' },
-  { x: 240, y: 300, z: 420, name: 'Product J', color: '#e14eca' },
-];
+import { supabase } from '../../lib/supabase';
 
 const BubbleChart = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const domain = [0, 500];
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: players, error } = await supabase
+          .from('players')
+          .select('*');
+
+        if (error) throw error;
+
+        // Transform player data for the bubble chart
+        const chartData = players?.map(player => ({
+          x: player.skill_level * 50, // Scale skill level to x-axis
+          y: player.observation_count * 20, // Scale observation count to y-axis
+          z: player.pdp_progress * 5, // Scale PDP progress to bubble size
+          name: player.name,
+          color: `#${Math.floor(Math.random()*16777215).toString(16)}` // Random color
+        })) || [];
+
+        setData(chartData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
   
   // Custom tooltip to display detailed bubble information
   const CustomTooltip = ({ active, payload }) => {
@@ -25,18 +44,21 @@ const BubbleChart = () => {
       return (
         <div className="bg-white p-2 border border-gray-200 shadow-sm rounded-md">
           <p className="font-medium">{name}</p>
-          <p className="text-sm">X: {x}</p>
-          <p className="text-sm">Y: {y}</p>
-          <p className="text-sm">Z: {z} (Size)</p>
+          <p className="text-sm">Skill Level: {x/50}</p>
+          <p className="text-sm">Observations: {y/20}</p>
+          <p className="text-sm">PDP Progress: {z/5}%</p>
         </div>
       );
     }
     return null;
   };
 
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
   return (
     <div className="h-72">
-      <h2 className="text-lg font-medium text-gray-800 mb-4">Product Performance (3D)</h2>
+      <h2 className="text-lg font-medium text-gray-800 mb-4">Player Performance Overview</h2>
       <ResponsiveContainer width="100%" height="90%">
         <ScatterChart
           margin={{
@@ -50,22 +72,22 @@ const BubbleChart = () => {
           <XAxis 
             type="number" 
             dataKey="x" 
-            name="Revenue" 
+            name="Skill Level" 
             domain={domain} 
-            label={{ value: 'Revenue', position: 'insideBottom', offset: -5 }} 
+            label={{ value: 'Skill Level', position: 'insideBottom', offset: -5 }} 
           />
           <YAxis 
             type="number" 
             dataKey="y" 
-            name="Engagement" 
+            name="Observations" 
             domain={domain} 
-            label={{ value: 'Engagement', angle: -90, position: 'insideLeft' }} 
+            label={{ value: 'Observations', angle: -90, position: 'insideLeft' }} 
           />
           <ZAxis 
             type="number" 
             dataKey="z" 
             range={[50, 400]} 
-            name="Size" 
+            name="PDP Progress" 
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />

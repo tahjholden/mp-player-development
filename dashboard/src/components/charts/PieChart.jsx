@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { pieChartData, COLORS } from '../../data/mockData';
+
+const DEFAULT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28CFE', '#FF6699'];
 
 const PieChartComponent = ({ data }) => {
-  const [chartData, setChartData] = useState(pieChartData);
+  const [chartData, setChartData] = useState([]);
   
   useEffect(() => {
     // If data is promise, resolve it
@@ -39,7 +40,7 @@ const PieChartComponent = ({ data }) => {
             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
           >
             {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]} />
             ))}
           </Pie>
           <Tooltip formatter={(value) => `${value}`} />

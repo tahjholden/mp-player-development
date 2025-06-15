@@ -9,7 +9,6 @@ import BubbleChart from './charts/BubbleChart';
 import TreeMapChart from './charts/TreeMap';
 import StatsCard from './StatsCard';
 import { dashboardService } from '../lib/dashboardService';
-import { areaChartData, barChartData, pieChartData, lineChartData, radarChartData } from '../data/mockData';
 
 const Dashboard = () => {
   const [stats, setStats] = useState([
@@ -60,57 +59,33 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        
-        // Insert sample data first (only inserts if tables are empty)
-        await dashboardService.insertSampleData();
-        
-        // Fetch dashboard stats
-        const dashboardStats = await dashboardService.getDashboardStats();
-        
-        // Update stats with actual data
-        setStats(prev => [
-          {
-            ...prev[0],
-            value: dashboardStats.playerCount?.toString() || '0',
-            change: '+5.25%',
-            trend: 'up'
-          },
-          {
-            ...prev[1],
-            value: dashboardStats.coachCount?.toString() || '0',
-            change: '+2.5%',
-            trend: 'up'
-          },
-          {
-            ...prev[2],
-            value: dashboardStats.observationsCount?.toString() || '0',
-            change: '+12.4%',
-            trend: 'up'
-          },
-          {
-            ...prev[3],
-            value: dashboardStats.groupCount?.toString() || '0',
-            change: '+3.2%',
-            trend: 'up'
-          }
+        // Remove sample data insertion
+        // await dashboardService.insertSampleData();
+        const [stats, activity, performance, completion, distribution, recent] = await Promise.all([
+          dashboardService.getDashboardStats(),
+          dashboardService.getActivityChartData(),
+          dashboardService.getPerformanceMetricsData(),
+          dashboardService.getObservationCompletionRate(),
+          dashboardService.getPlayerDistributionData(),
+          dashboardService.getRecentObservations(),
         ]);
-        
-        // Fetch activity chart data
-        const chartData = await dashboardService.getActivityChartData();
-        setActivityData(chartData);
-        
-        setLoading(false);
+        setStats(stats);
+        setActivityData(activity);
+        setPerformanceData(performance);
+        setCompletionRate(completion);
+        setDistributionData(distribution);
+        setRecentObservations(recent);
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data');
+        setError('Failed to load dashboard data.');
+      } finally {
         setLoading(false);
       }
     };
-    
-    fetchDashboardData();
+    fetchData();
   }, []);
 
   if (error) {
@@ -159,7 +134,7 @@ const Dashboard = () => {
               <p className="text-gray-500">Loading chart data...</p>
             </div>
           ) : (
-            <BarChartComponent data={barChartData} />
+            <BarChartComponent data={[]} />
           )}
         </div>
       </div>
@@ -173,7 +148,7 @@ const Dashboard = () => {
               <p className="text-gray-500">Loading chart data...</p>
             </div>
           ) : (
-            <PieChartComponent data={pieChartData} />
+            <PieChartComponent data={[]} />
           )}
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -183,7 +158,7 @@ const Dashboard = () => {
               <p className="text-gray-500">Loading chart data...</p>
             </div>
           ) : (
-            <LineChartComponent data={lineChartData} />
+            <LineChartComponent data={[]} />
           )}
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -193,7 +168,7 @@ const Dashboard = () => {
               <p className="text-gray-500">Loading chart data...</p>
             </div>
           ) : (
-            <RadarChartComponent data={radarChartData} />
+            <RadarChartComponent data={[]} />
           )}
         </div>
       </div>
