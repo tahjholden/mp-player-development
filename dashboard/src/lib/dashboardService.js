@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, TABLES } from './supabase';
 
 /**
  * Dashboard Service for MPB Coaches Dashboard
@@ -13,16 +13,16 @@ export const dashboardService = {
         { data: observations, error: observationsError },
         { data: pdps, error: pdpsError }
       ] = await Promise.all([
-        supabase.from('players').select('*'),
-        supabase.from('observations').select('*'),
-        supabase.from('pdps').select('*')
+        supabase.from(TABLES.PLAYERS).select('*'),
+        supabase.from(TABLES.OBSERVATIONS).select('*'),
+        supabase.from(TABLES.PDP).select('*')
       ]);
 
       if (playersError) throw playersError;
       if (observationsError) throw observationsError;
       if (pdpsError) throw pdpsError;
 
-      const activePdps = pdps?.filter(pdp => pdp.status === 'In Progress') || [];
+      const activePdps = pdps?.filter(pdp => pdp.active) || [];
       const highPerformers = players?.filter(player => player.skill_level >= 8) || [];
 
       // Get current week observations (Monday-Sunday)
@@ -38,7 +38,7 @@ export const dashboardService = {
       endOfWeek.setHours(23, 59, 59, 999);
       
       const weeklyObservationsCount = observations?.filter(obs => {
-        const obsDate = new Date(obs.created_at);
+        const obsDate = new Date(obs.observation_date);
         return obsDate >= startOfWeek && obsDate <= endOfWeek;
       }).length || 0;
 
@@ -58,15 +58,15 @@ export const dashboardService = {
   getActivityChartData: async () => {
     try {
       const { data: observations, error } = await supabase
-        .from('observations')
+        .from(TABLES.OBSERVATIONS)
         .select('*')
-        .order('created_at', { ascending: true });
+        .order('observation_date', { ascending: true });
 
       if (error) throw error;
 
       // Process observations into weekly data
       const weeklyData = observations?.reduce((acc, obs) => {
-        const date = new Date(obs.created_at);
+        const date = new Date(obs.observation_date);
         const weekStart = new Date(date);
         weekStart.setDate(date.getDate() - date.getDay());
         const weekKey = weekStart.toISOString().split('T')[0];
@@ -89,17 +89,15 @@ export const dashboardService = {
   getPerformanceMetricsData: async () => {
     try {
       const { data: players, error } = await supabase
-        .from('players')
+        .from(TABLES.PLAYERS)
         .select('*');
 
       if (error) throw error;
 
       return players?.map(player => ({
         name: player.name,
-        skillLevel: player.skill_level,
-        observationCount: player.observation_count || 0,
-        pdpProgress: player.pdp_progress || 0,
-        attendance: player.attendance || 0
+        position: player.position,
+        groupId: player.group_id
       })) || [];
     } catch (error) {
       console.error('Error fetching performance metrics:', error);
@@ -111,13 +109,13 @@ export const dashboardService = {
   getObservationCompletionRate: async () => {
     try {
       const { data: observations, error } = await supabase
-        .from('observations')
+        .from(TABLES.OBSERVATIONS)
         .select('*');
 
       if (error) throw error;
 
       const totalObservations = observations?.length || 0;
-      const completedObservations = observations?.filter(obs => obs.status === 'Completed').length || 0;
+      const completedObservations = observations?.filter(obs => obs.content).length || 0;
 
       return totalObservations > 0 ? (completedObservations / totalObservations) * 100 : 0;
     } catch (error) {
@@ -130,27 +128,21 @@ export const dashboardService = {
   getPlayerDistributionData: async () => {
     try {
       const { data: players, error } = await supabase
-        .from('players')
+        .from(TABLES.PLAYERS)
         .select('*');
 
       if (error) throw error;
 
       const distribution = players?.reduce((acc, player) => {
-        const ageGroup = player.age_group || 'Unknown';
-        const gender = player.gender || 'Unknown';
-        const key = `${ageGroup}-${gender}`;
-        
-        acc[key] = (acc[key] || 0) + 1;
+        const position = player.position || 'Unknown';
+        acc[position] = (acc[position] || 0) + 1;
         return acc;
       }, {});
 
-      return Object.entries(distribution || {}).map(([key, value]) => {
-        const [ageGroup, gender] = key.split('-');
-        return {
-          name: `${ageGroup} ${gender}`,
-          value
-        };
-      });
+      return Object.entries(distribution || {}).map(([position, value]) => ({
+        name: position,
+        value
+      }));
     } catch (error) {
       console.error('Error fetching player distribution:', error);
       throw error;
@@ -161,9 +153,9 @@ export const dashboardService = {
   getRecentObservations: async () => {
     try {
       const { data: observations, error } = await supabase
-        .from('observations')
+        .from(TABLES.OBSERVATIONS)
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('observation_date', { ascending: false })
         .limit(5);
 
       if (error) throw error;
@@ -179,17 +171,15 @@ export const dashboardService = {
   getPlayerPerformanceData: async () => {
     try {
       const { data: players, error } = await supabase
-        .from('players')
+        .from(TABLES.PLAYERS)
         .select('*');
 
       if (error) throw error;
 
       return players?.map(player => ({
         name: player.name,
-        skillLevel: player.skill_level,
-        observationCount: player.observation_count || 0,
-        pdpProgress: player.pdp_progress || 0,
-        attendance: player.attendance || 0
+        position: player.position,
+        groupId: player.group_id
       })) || [];
     } catch (error) {
       console.error('Error fetching player performance data:', error);

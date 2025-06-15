@@ -9,22 +9,22 @@ import { PDP } from 'src/models/PDP';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Table prefixes for the current session
-const tablePrefix = 'mpb_4ivic_';
+// Table names
+export const TABLES = {
+  PLAYERS: 'players',
+  COACHES: 'coaches',
+  PARENTS: 'parents',
+  PDP: 'pdp',
+  OBSERVATIONS: 'observations',
+  PLAYER_PARENTS: 'player_parents',
+  PLAYER_GROUPS: 'player_groups',
+  COACH_GROUPS: 'coach_groups',
+  GROUPS: 'groups',
+  ACTIVITY_LOG: 'activity_log'
+};
 
 // Create a single supabase client for interacting with your database
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Table names
-export const TABLES = {
-  PLAYERS: `${tablePrefix}players`,
-  COACHES: `${tablePrefix}coaches`,
-  PARENTS: `${tablePrefix}parents`,
-  PDPS: `${tablePrefix}pdps`,
-  OBSERVATIONS: `${tablePrefix}observations`,
-  PLAYER_PARENTS: `${tablePrefix}player_parents`,
-  COACH_PLAYERS: `${tablePrefix}coach_players`
-};
 
 /**
  * Generic data service for basic CRUD operations
@@ -216,7 +216,7 @@ class PlayerService extends DataService {
       // Get PDP for the player if it exists
       if (player.pdp_id) {
         const { data: pdpData, error } = await supabase
-          .from(TABLES.PDPS)
+          .from(TABLES.PDP)
           .select('*')
           .eq('id', player.pdp_id)
           .single();
@@ -326,7 +326,7 @@ class ObservationService extends DataService {
  */
 class PDPService extends DataService {
   constructor() {
-    super(TABLES.PDPS, PDP);
+    super(TABLES.PDP, PDP);
   }
 
   async getPDPsForPlayer(playerId) {
