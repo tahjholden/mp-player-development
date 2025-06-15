@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -27,29 +27,24 @@ const CoachList = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchCoaches();
+    const fetchData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from(TABLES.COACHES)
+          .select('*');
+
+        if (error) throw error;
+        setCoaches(data || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
-
-  const fetchCoaches = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from('coaches')
-        .select('*');
-
-      if (error) throw error;
-
-      setCoaches(data || []);
-
-    } catch (err) {
-      console.error('Error fetching coaches:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

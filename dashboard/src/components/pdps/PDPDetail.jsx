@@ -24,39 +24,35 @@ const PDPDetail = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    const fetchPDP = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: pdpData, error: pdpError } = await supabase
           .from(TABLES.PDP)
           .select('*')
           .eq('id', id)
           .single();
 
-        if (error) throw error;
-        setPdp(data);
+        if (pdpError) throw pdpError;
 
-        // Fetch player data
         const { data: playerData, error: playerError } = await supabase
-          .from('players')
+          .from(TABLES.PLAYERS)
           .select('*')
-          .eq('id', data.playerId)
+          .eq('id', pdpData.player_id)
           .single();
 
         if (playerError) throw playerError;
+
+        setPdp(pdpData);
         setPlayer(playerData);
       } catch (error) {
-        console.error('Error fetching PDP:', error);
+        console.error('Error fetching data:', error);
         setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (id !== 'new') {
-      fetchPDP();
-    } else {
-      setLoading(false);
-    }
+    fetchData();
   }, [id]);
 
   const getStatusColor = (status) => {

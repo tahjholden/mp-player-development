@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import {
   Card,
   CardContent,
@@ -22,38 +22,43 @@ const CoachDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchCoachData();
-  }, [id]);
+    const fetchData = async () => {
+      try {
+        const { data: coachData, error: coachError } = await supabase
+          .from(TABLES.COACHES)
+          .select('*')
+          .eq('id', id)
+          .single();
 
-  const fetchCoachData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const { data: coachData, error: coachError } = await supabase
-        .from('coaches')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (coachError) throw coachError;
-      setCoach(coachData);
-      // Fetch players assigned to this coach (if you have a relation)
-      const { data: playersData } = await supabase
-        .from('players')
-        .select('*')
-        .eq('coachId', id);
-      setPlayers(playersData || []);
-      // Fetch observations for this coach
-      const { data: observationsData } = await supabase
-        .from('observations')
-        .select('*')
-        .eq('coachId', id);
-      setObservations(observationsData || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (coachError) throw coachError;
+
+        const { data: playersData, error: playersError } = await supabase
+          .from(TABLES.PLAYERS)
+          .select('*')
+          .eq('coach_id', id);
+
+        if (playersError) throw playersError;
+
+        const { data: observationsData, error: observationsError } = await supabase
+          .from(TABLES.OBSERVATIONS)
+          .select('*')
+          .eq('coach_id', id);
+
+        if (observationsError) throw observationsError;
+
+        setCoach(coachData);
+        setPlayers(playersData || []);
+        setObservations(observationsData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
 
   if (loading) {
     return <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px"><CircularProgress /></Box>;

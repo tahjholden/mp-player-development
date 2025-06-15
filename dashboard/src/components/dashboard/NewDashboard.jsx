@@ -61,25 +61,25 @@ const NewDashboard = () => {
       try {
         const [
           { data: playersData, error: playersError },
+          { data: coachesData, error: coachesError },
           { data: observationsData, error: observationsError },
-          { data: pdpsData, error: pdpsError },
-          { data: coachesData, error: coachesError }
+          { data: pdpsData, error: pdpsError }
         ] = await Promise.all([
           supabase.from(TABLES.PLAYERS).select('*'),
+          supabase.from(TABLES.COACHES).select('*'),
           supabase.from(TABLES.OBSERVATIONS).select('*'),
-          supabase.from(TABLES.PDP).select('*'),
-          supabase.from(TABLES.COACHES).select('*')
+          supabase.from(TABLES.PDP).select('*')
         ]);
 
         if (playersError) throw playersError;
+        if (coachesError) throw coachesError;
         if (observationsError) throw observationsError;
         if (pdpsError) throw pdpsError;
-        if (coachesError) throw coachesError;
 
         setPlayers(playersData || []);
+        setCoaches(coachesData || []);
         setObservations(observationsData || []);
         setPdps(pdpsData || []);
-        setCoaches(coachesData || []);
 
         // Calculate stats
         const activePdps = pdpsData?.filter(pdp => pdp.active) || [];
@@ -357,8 +357,9 @@ const NewDashboard = () => {
     const { data, error } = await supabase
       .from(TABLES.PLAYERS)
       .select('*');
+
     if (error) throw error;
-    return data;
+    return data || [];
   };
 
   const getActivePdps = async () => {
@@ -410,8 +411,36 @@ const NewDashboard = () => {
     const { data, error } = await supabase
       .from(TABLES.PLAYERS)
       .select('*');
+
     if (error) throw error;
-    return data;
+    return data || [];
+  };
+
+  const getPDPProgress = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getPDPDistribution = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getPlayerMetrics = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
   };
 
   if (loading) {

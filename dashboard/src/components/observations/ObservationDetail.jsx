@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import {
   Card,
   CardContent,
@@ -24,41 +24,40 @@ const ObservationDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchObservationData();
-  }, [id]);
+    const fetchData = async () => {
+      try {
+        const { data: obsData, error: obsError } = await supabase
+          .from(TABLES.OBSERVATIONS)
+          .select('*')
+          .eq('id', id)
+          .single();
 
-  const fetchObservationData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+        if (obsError) throw obsError;
 
-      const { data: obsData, error: obsError } = await supabase
-        .from('observations')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (obsError) throw obsError;
-      setObservation(obsData);
-
-      if (obsData) {
         const [
           { data: playerData, error: playerError },
           { data: coachData, error: coachError }
         ] = await Promise.all([
-          supabase.from('players').select('*').eq('id', obsData.playerId).single(),
-          supabase.from('coaches').select('*').eq('id', obsData.coachId).single()
+          supabase.from(TABLES.PLAYERS).select('*').eq('id', obsData.playerId).single(),
+          supabase.from(TABLES.COACHES).select('*').eq('id', obsData.coachId).single()
         ]);
+
         if (playerError) throw playerError;
         if (coachError) throw coachError;
+
+        setObservation(obsData);
         setPlayer(playerData);
         setCoach(coachData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchData();
+  }, [id]);
 
   const getRatingColor = (rating) => {
     if (rating >= 8) return 'text-green-600 bg-green-100 border-green-300';
