@@ -121,16 +121,17 @@ const NewDashboardUpdated = () => {
       .from(TABLES.PLAYERS)
       .select('*');
     if (error) throw error;
-    return data;
+    return data || [];
   };
 
   const getActivePdps = async () => {
     const { data, error } = await supabase
       .from(TABLES.PDP)
       .select('*')
-      .eq('active', true);
+      .eq('status', 'active');
+
     if (error) throw error;
-    return data;
+    return data || [];
   };
 
   const getPdpCompletionRate = async () => {
@@ -174,7 +175,70 @@ const NewDashboardUpdated = () => {
       .from(TABLES.PLAYERS)
       .select('*');
     if (error) throw error;
-    return data;
+    return data || [];
+  };
+
+  const getPDPsByStatus = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getPDPsByPlayer = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getCoachDistribution = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.COACHES)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getObservationTrends = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.OBSERVATIONS)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getPDPProgress = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getPDPDistribution = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const getPlayerMetrics = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PLAYERS)
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
   };
 
   const fetchDashboardData = async () => {

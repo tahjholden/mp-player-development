@@ -23,39 +23,35 @@ const ObservationList = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [
+          { data: observationsData, error: observationsError },
+          { data: playersData, error: playersError },
+          { data: coachesData, error: coachesError }
+        ] = await Promise.all([
+          supabase.from(TABLES.OBSERVATIONS).select('*'),
+          supabase.from(TABLES.PLAYERS).select('*'),
+          supabase.from(TABLES.COACHES).select('*')
+        ]);
+
+        if (observationsError) throw observationsError;
+        if (playersError) throw playersError;
+        if (coachesError) throw coachesError;
+
+        setObservations(observationsData || []);
+        setPlayers(playersData || []);
+        setCoaches(coachesData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
   }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [
-        { data: observationsData, error: observationsError },
-        { data: playersData, error: playersError },
-        { data: coachesData, error: coachesError }
-      ] = await Promise.all([
-        supabase.from('observations').select('*'),
-        supabase.from('players').select('*'),
-        supabase.from('coaches').select('*')
-      ]);
-
-      if (observationsError) throw observationsError;
-      if (playersError) throw playersError;
-      if (coachesError) throw coachesError;
-
-      setObservations(observationsData || []);
-      setPlayers(playersData || []);
-      setCoaches(coachesData || []);
-
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getPlayerName = (playerId) => {
     const player = players.find(p => p.id === playerId);
