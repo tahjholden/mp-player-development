@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "framework": "vite",
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist",
@@ -8,4 +9,14 @@
       "destination": "/index.html"
     }
   ]
+=======
+  "buildCommand": "pnpm install && cd dashboard && pnpm install && pnpm run build",
+  "outputDirectory": "dashboard/dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "installCommand": "pnpm install",
+  "devCommand": "cd dashboard && pnpm run dev"
+>>>>>>> 5524b7eb8d3c1e924c5289ab27186e7ff5333a91
 } 

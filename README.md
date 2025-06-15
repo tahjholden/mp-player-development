@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Player Development Dashboard
 
 A modern web application for managing player development plans, observations, and coaching.
@@ -51,3 +52,9 @@ The project uses Vite for development and building. Key commands:
 ## Deployment
 
 The application is configured for deployment on Vercel. The build process is handled automatically when pushing to the main branch. 
+=======
+# Force Vercel rebuild
+
+# Last updated: Sun Jun 15 08:20:59 EDT 2025
+# Force Vercel rebuild
+>>>>>>> 5524b7eb8d3c1e924c5289ab27186e7ff5333a91

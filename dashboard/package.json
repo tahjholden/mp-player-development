@@ -1,43 +1,27 @@
 {
-<<<<<<< HEAD
   "name": "react-template",
-=======
-  "name": "mpb-coaching",
->>>>>>> 5524b7eb8d3c1e924c5289ab27186e7ff5333a91
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-<<<<<<< HEAD
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint ./src --quiet",
     "preview": "vite preview"
-=======
-    "build": "cd dashboard && pnpm run build",
-    "dev": "cd dashboard && pnpm run dev",
-    "preview": "cd dashboard && pnpm run preview"
->>>>>>> 5524b7eb8d3c1e924c5289ab27186e7ff5333a91
   },
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
-<<<<<<< HEAD
     "@supabase/supabase-js": "^2.47.12",
     "@types/prop-types": "^15.7.14",
     "date-fns": "^3.3.1",
-=======
-    "@supabase/supabase-js": "^2.50.0",
-    "@types/prop-types": "^15.7.15",
->>>>>>> 5524b7eb8d3c1e924c5289ab27186e7ff5333a91
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.2",
-<<<<<<< HEAD
     "recharts": "^2.15.1"
   },
   "devDependencies": {
@@ -55,24 +39,4 @@
     "tailwindcss": "^3.4.10",
     "vite": "^5.4.1"
   }
-} 
-=======
-    "recharts": "^2.15.3"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.29.0",
-    "@types/react": "^18.3.23",
-    "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^4.5.2",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.29.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^15.15.0",
-    "postcss": "^8.5.5",
-    "tailwindcss": "^3.4.17",
-    "vite": "^5.4.19"
-  }
 }
->>>>>>> 5524b7eb8d3c1e924c5289ab27186e7ff5333a91
