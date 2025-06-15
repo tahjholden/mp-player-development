@@ -5,7 +5,7 @@ import ObservationList from './ObservationList';
 import PDPHistoryModal from './PDPHistoryModal';
 import { dashboardService } from '../../lib/dashboardService';
 import { FaUserPlus, FaClipboardCheck, FaChartLine } from 'react-icons/fa';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { 
   Card, 
@@ -58,8 +58,80 @@ const NewDashboardUpdated = () => {
   const [selectedPDP, setSelectedPDP] = useState(null);
   
   useEffect(() => {
-    fetchDashboardData();
+    const fetchData = async () => {
+      try {
+        const [
+          { data: pdpsData, error: pdpsError },
+          { data: playersData, error: playersError },
+          { data: observationsData, error: observationsError }
+        ] = await Promise.all([
+          supabase.from(TABLES.PDP).select('*'),
+          supabase.from(TABLES.PLAYERS).select('*'),
+          supabase.from(TABLES.OBSERVATIONS).select('*')
+        ]);
+
+        if (pdpsError) throw pdpsError;
+        if (playersError) throw playersError;
+        if (observationsError) throw observationsError;
+
+        setPdps(pdpsData || []);
+        setPlayers(playersData || []);
+        setObservations(observationsData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  const getActivePdps = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*')
+      .eq('active', true);
+    if (error) throw error;
+    return data;
+  };
+
+  const getPdpCompletionRate = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getPdpTrends = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getOverduePdps = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*')
+      .lt('target_end_date', new Date().toISOString())
+      .eq('active', true);
+    if (error) throw error;
+    return data;
+  };
+
+  const getRecentPdps = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (error) throw error;
+    return data;
+  };
 
   const fetchDashboardData = async () => {
     try {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import {
   Card,
   CardContent,
@@ -24,43 +24,40 @@ const PDPDetail = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    fetchPDPData();
-  }, [id]);
+    const fetchPDP = async () => {
+      try {
+        const { data, error } = await supabase
+          .from(TABLES.PDP)
+          .select('*')
+          .eq('id', id)
+          .single();
 
-  const fetchPDPData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data: pdpData, error: pdpError } = await supabase
-        .from('pdps')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (pdpError) throw pdpError;
-
-      if (pdpData) {
-        setPdp(pdpData);
+        if (error) throw error;
+        setPdp(data);
 
         // Fetch player data
         const { data: playerData, error: playerError } = await supabase
           .from('players')
           .select('*')
-          .eq('id', pdpData.playerId)
+          .eq('id', data.playerId)
           .single();
 
         if (playerError) throw playerError;
         setPlayer(playerData);
+      } catch (error) {
+        console.error('Error fetching PDP:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-    } catch (err) {
-      console.error('Error fetching PDP data:', err);
-      setError(err.message);
-    } finally {
+    if (id !== 'new') {
+      fetchPDP();
+    } else {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   const getStatusColor = (status) => {
     switch (status) {

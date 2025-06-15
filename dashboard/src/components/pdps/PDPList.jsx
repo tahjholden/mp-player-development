@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -13,12 +13,14 @@ import {
   Button,
   Box,
   CircularProgress,
-  Alert
+  Alert,
+  Chip
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   Add as AddIcon
 } from '@mui/icons-material';
+import { format } from 'date-fns';
 
 const PDPList = () => {
   const navigate = useNavigate();
@@ -28,35 +30,24 @@ const PDPList = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchData();
+    const fetchPdps = async () => {
+      try {
+        const { data: pdpsData, error: pdpsError } = await
+          supabase.from(TABLES.PDP).select('*');
+
+        if (pdpsError) throw pdpsError;
+
+        setPdps(pdpsData || []);
+      } catch (error) {
+        console.error('Error fetching PDPs:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPdps();
   }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [
-        { data: pdpsData, error: pdpsError },
-        { data: playersData, error: playersError }
-      ] = await Promise.all([
-        supabase.from('pdps').select('*'),
-        supabase.from('players').select('*')
-      ]);
-
-      if (pdpsError) throw pdpsError;
-      if (playersError) throw playersError;
-
-      setPdps(pdpsData || []);
-      setPlayers(playersData || []);
-
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getPlayerName = (playerId) => {
     const player = players.find(p => p.id === playerId);

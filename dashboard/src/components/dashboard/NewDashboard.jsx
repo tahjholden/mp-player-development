@@ -5,7 +5,7 @@ import ObservationList from './ObservationList';
 import PDPHistoryModal from './PDPHistoryModal';
 import { dashboardService } from '../../lib/dashboardService';
 import { FaUserPlus, FaClipboardCheck, FaChartLine } from 'react-icons/fa';
-import { supabase } from '../../lib/supabase';
+import { supabase, TABLES } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { 
   Card, 
@@ -57,76 +57,35 @@ const NewDashboard = () => {
   const [selectedPDP, setSelectedPDP] = useState(null);
   
   useEffect(() => {
-    fetchDashboardData();
+    const fetchData = async () => {
+      try {
+        const [
+          { data: pdpsData, error: pdpsError },
+          { data: playersData, error: playersError },
+          { data: observationsData, error: observationsError }
+        ] = await Promise.all([
+          supabase.from(TABLES.PDP).select('*'),
+          supabase.from(TABLES.PLAYERS).select('*'),
+          supabase.from(TABLES.OBSERVATIONS).select('*')
+        ]);
+
+        if (pdpsError) throw pdpsError;
+        if (playersError) throw playersError;
+        if (observationsError) throw observationsError;
+
+        setPdps(pdpsData || []);
+        setPlayers(playersData || []);
+        setObservations(observationsData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Fetch all data in parallel
-      const [
-        { data: playersData, error: playersError },
-        { data: observationsData, error: observationsError },
-        { data: pdpsData, error: pdpsError },
-        { data: coachesData, error: coachesError },
-        { data: pdpHistoryData, error: pdpHistoryError }
-      ] = await Promise.all([
-        supabase.from('players').select('*'),
-        supabase.from('observations').select('*'),
-        supabase.from('pdps').select('*'),
-        supabase.from('coaches').select('*'),
-        supabase.from('pdp_history').select('*')
-      ]);
-
-      if (playersError) throw playersError;
-      if (observationsError) throw observationsError;
-      if (pdpsError) throw pdpsError;
-      if (coachesError) throw coachesError;
-      if (pdpHistoryError) throw pdpHistoryError;
-
-      setPlayers(playersData || []);
-      setObservations(observationsData || []);
-      setPdps(pdpsData || []);
-      setCoaches(coachesData || []);
-      setPdpHistory(pdpHistoryData || []);
-
-      // Calculate stats
-      const activePdps = pdpsData?.filter(pdp => pdp.status === 'In Progress') || [];
-      const highPerformers = playersData?.filter(player => player.skill_level >= 8) || [];
-
-      // Get current week observations (Monday-Sunday)
-      const currentDate = new Date();
-      const startOfWeek = new Date(currentDate);
-      const dayOfWeek = currentDate.getDay();
-      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday (0)
-      startOfWeek.setDate(currentDate.getDate() - diff);
-      startOfWeek.setHours(0, 0, 0, 0);
-      
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      endOfWeek.setHours(23, 59, 59, 999);
-      
-      const weeklyObservationsCount = observationsData?.filter(obs => {
-        const obsDate = new Date(obs.created_at);
-        return obsDate >= startOfWeek && obsDate <= endOfWeek;
-      }).length || 0;
-
-      setStats({
-        playerCount: playersData?.length || 0,
-        observationCount: weeklyObservationsCount,
-        pdpCount: activePdps.length,
-        highPerformers: highPerformers.length
-      });
-
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAddPlayer = () => {
     setShowAddPlayerModal(true);
@@ -335,6 +294,51 @@ const NewDashboard = () => {
       console.error('Error updating PDP:', err);
       setError(err.message);
     }
+  };
+
+  const getActivePdps = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*')
+      .eq('active', true);
+    if (error) throw error;
+    return data;
+  };
+
+  const getPdpCompletionRate = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getPdpTrends = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*');
+    if (error) throw error;
+    return data;
+  };
+
+  const getOverduePdps = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*')
+      .lt('target_end_date', new Date().toISOString())
+      .eq('active', true);
+    if (error) throw error;
+    return data;
+  };
+
+  const getRecentPdps = async () => {
+    const { data, error } = await supabase
+      .from(TABLES.PDP)
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (error) throw error;
+    return data;
   };
 
   if (loading) {
