@@ -108,7 +108,7 @@ const PlayerList = () => {
           </thead>
           <tbody>
             {filteredPlayers.length > 0 ? (
-              filteredPlayers.map((player) => (
+              filteredPlayers.filter(player => player && player.id).map((player) => (
                 <tr key={player.id}>
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                     <Link to={`/players/${player.id}`} className="text-blue-600 hover:underline">
