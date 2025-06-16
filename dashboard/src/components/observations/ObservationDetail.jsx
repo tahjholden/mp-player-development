@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase, TABLES } from '../../lib/supabase';
+import { supabase, TABLES } from '../../../../src/lib/supabase';
 import {
   Card,
   CardContent,

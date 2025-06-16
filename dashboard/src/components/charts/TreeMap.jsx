@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
-import { supabase, TABLES } from '../../lib/supabase';
+import { supabase, TABLES } from '../../../../src/lib/supabase';
 
 const TreeMapChart = () => {
   const [data, setData] = useState([]);
