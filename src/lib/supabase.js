@@ -23,6 +23,8 @@ export const TABLES = {
   COACHES: 'coaches',
   OBSERVATIONS: 'observations',
   PDP: 'pdp',                 // personal-development-plan
+  PARENTS: 'parents',
+  PLAYER_PARENTS: 'player_parents',
   ACTIVITY_LOG: 'activity_log'
 };
 
@@ -134,16 +136,139 @@ class ActivityLogService extends DataService {
   }
 }
 
+class PlayerService extends DataService {
+  constructor() {
+    super(TABLES.PLAYERS);
+  }
+
+  async getPlayerWithParents(playerId) {
+    try {
+      const player = await this.getById(playerId);
+      if (!player) return null;
+
+      const { data: playerParents, error } = await supabase
+        .from(TABLES.PLAYER_PARENTS)
+        .select('parent_id')
+        .eq('player_id', playerId);
+
+      if (error) throw error;
+
+      const parentIds = playerParents.map(pp => pp.parent_id);
+      let parents = [];
+
+      if (parentIds.length > 0) {
+        const { data: parentData, error: parentsError } = await supabase
+          .from(TABLES.PARENTS)
+          .select('*')
+          .in('id', parentIds);
+
+        if (parentsError) throw parentsError;
+        parents = parentData;
+      }
+
+      return { player, parents };
+    } catch (error) {
+      console.error('Error fetching player with parents:', error);
+      return null;
+    }
+  }
+
+  async getPlayerWithPDP(playerId) {
+    try {
+      const player = await this.getById(playerId);
+      if (!player) return null;
+
+      if (player.pdp_id) {
+        const { data: pdpData, error } = await supabase
+          .from(TABLES.PDP)
+          .select('*')
+          .eq('id', player.pdp_id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        const pdp = pdpData || null;
+        return { player, pdp };
+      }
+
+      return { player, pdp: null };
+    } catch (error) {
+      console.error('Error fetching player with PDP:', error);
+      return { player: null, pdp: null };
+    }
+  }
+}
+
+class CoachService extends DataService {
+  constructor() {
+    super(TABLES.COACHES);
+  }
+
+  async getCoachWithPlayers(coachId) {
+    return { coach: await this.getById(coachId), players: [] };
+  }
+}
+
+class ObservationService extends DataService {
+  constructor() {
+    super(TABLES.OBSERVATIONS);
+  }
+
+  async getObservationsForPlayer(playerId) {
+    try {
+      const { data, error } = await supabase
+        .from(this.tableName)
+        .select('*')
+        .eq('player_id', playerId);
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching observations for player:', error);
+      return [];
+    }
+  }
+
+  async getObservationsForPDP(pdpId) {
+    try {
+      const { data, error } = await supabase
+        .from(this.tableName)
+        .select('*')
+        .eq('pdp_id', pdpId);
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching observations for PDP:', error);
+      return [];
+    }
+  }
+
+  async getObservationsByCoach(coachId) {
+    try {
+      const { data, error } = await supabase
+        .from(this.tableName)
+        .select('*')
+        .eq('coach_id', coachId);
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching observations by coach:', error);
+      return [];
+    }
+  }
+}
+
+export const playerService = new PlayerService();
+export const coachService = new CoachService();
+export const observationService = new ObservationService();
 export const pdpService = new PDPService();
 export const activityLogService = new ActivityLogService();
 
 export const services = {
-  players: new DataService(TABLES.PLAYERS),
-  coaches: new DataService(TABLES.COACHES),
-  observations: new DataService(TABLES.OBSERVATIONS),
+  players: playerService,
+  coaches: coachService,
+  observations: observationService,
   pdps: pdpService,
   activityLog: activityLogService
-}; 
+};
 
 /**
  * VoiceService – simple wrapper around the Web Speech API (speechRecognition)
