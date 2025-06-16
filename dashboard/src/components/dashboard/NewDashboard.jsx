@@ -5,7 +5,7 @@ import ObservationList from './ObservationList';
 import PDPHistoryModal from './PDPHistoryModal';
 import { dashboardService } from '../../lib/dashboardService';
 import { FaUserPlus, FaClipboardCheck, FaChartLine } from 'react-icons/fa';
-import { supabase, TABLES } from '../../lib/supabase';
+import { supabase, TABLES } from '../../../../src/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { 
   Card, 

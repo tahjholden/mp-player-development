@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { supabase, TABLES } from '../../lib/supabase';
+import { supabase, TABLES } from '../../../../src/lib/supabase';
 
 const BubbleChart = () => {
   const [data, setData] = useState([]);

@@ -218,7 +218,7 @@ const NewDashboard = () => {
 
       // Archive existing PDP if it exists
       const { data: existingPDP } = await supabase
-        .from('pdps')
+        .from(TABLES.PDP)
         .select('*')
         .eq('player_id', player.id)
         .eq('status', 'In Progress')
@@ -226,7 +226,7 @@ const NewDashboard = () => {
 
       if (existingPDP) {
         const { error: archiveError } = await supabase
-          .from('pdps')
+          .from(TABLES.PDP)
           .update({
             end_date: new Date().toISOString().split('T')[0],
             status: 'Archived'
@@ -238,7 +238,7 @@ const NewDashboard = () => {
 
       // Create new PDP
       const { data: newPDP, error: createError } = await supabase
-        .from('pdps')
+        .from(TABLES.PDP)
         .insert([{
           player_id: player.id,
           player_name: player.name,
@@ -281,7 +281,7 @@ const NewDashboard = () => {
       // Archive current PDP
       if (playerData.currentPDP) {
         const { error: archiveError } = await supabase
-          .from('pdps')
+          .from(TABLES.PDP)
           .update({
             end_date: new Date().toISOString().split('T')[0],
             status: 'Archived'
@@ -293,7 +293,7 @@ const NewDashboard = () => {
 
       // Create new PDP
       const { data: newPDP, error: createError } = await supabase
-        .from('pdps')
+        .from(TABLES.PDP)
         .insert([{
           player_id: playerData.id,
           player_name: playerData.name,
