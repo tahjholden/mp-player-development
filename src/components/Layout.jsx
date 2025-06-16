@@ -1,172 +1,323 @@
-import { useState } from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../App';
 import {
-  AppBar,
   Box,
-  CssBaseline,
-  Divider,
   Drawer,
-  IconButton,
+  AppBar,
+  Toolbar,
   List,
+  Typography,
+  Divider,
+  IconButton,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Toolbar,
-  Typography,
-  useTheme
+  Avatar,
+  Menu,
+  MenuItem,
+  useMediaQuery,
+  useTheme,
+  Tooltip,
+  Button
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
-  Assignment as AssignmentIcon,
-  Sports as SportsIcon,
-  ChevronLeft as ChevronLeftIcon
+  Assessment as AssessmentIcon,
+  Description as DescriptionIcon,
+  ChevronLeft as ChevronLeftIcon,
+  AccountCircle as AccountCircleIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
 
+// Define the drawer width for desktop
 const drawerWidth = 240;
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Players', icon: <PeopleIcon />, path: '/players' },
-  { text: 'PDPs', icon: <AssignmentIcon />, path: '/pdps' },
-  { text: 'Observations', icon: <SportsIcon />, path: '/observations' }
-];
+// Define the Old Gold color
+const oldGold = '#CFB53B';
 
-const Layout = ({ children }) => {
-  const [open, setOpen] = useState(true);
+const Layout = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const theme = useTheme();
-  const location = useLocation();
-
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // State for drawer open/close
+  const [drawerOpen, setDrawerOpen] = useState(!isMobile);
+  
+  // State for user menu
+  const [anchorEl, setAnchorEl] = useState(null);
+  const userMenuOpen = Boolean(anchorEl);
+  
+  // Handle drawer toggle
   const handleDrawerToggle = () => {
-    setOpen(!open);
+    setDrawerOpen(!drawerOpen);
   };
-
+  
+  // Handle user menu open
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  // Handle user menu close
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+  
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+  
+  // Navigation items
+  const navItems = [
+    { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+    { text: 'Players', path: '/players', icon: <PeopleIcon /> },
+    { text: 'Observations', path: '/observations', icon: <AssessmentIcon /> },
+    { text: 'Development Plans', path: '/pdps', icon: <DescriptionIcon /> }
+  ];
+  
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user || !user.email) return '?';
+    return user.email.substring(0, 2).toUpperCase();
+  };
+  
+  // Drawer content
+  const drawerContent = (
+    <>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 2
+        }}
+      >
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            fontWeight: 'bold',
+            color: oldGold
+          }}
+        >
+          Player Development
+        </Typography>
+        {isMobile && (
+          <IconButton onClick={handleDrawerToggle} sx={{ color: oldGold }}>
+            <ChevronLeftIcon />
+          </IconButton>
+        )}
+      </Box>
+      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.12)' }} />
+      <List sx={{ mt: 2 }}>
+        {navItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              component={NavLink}
+              to={item.path}
+              sx={{
+                py: 1.5,
+                '&.active': {
+                  backgroundColor: 'rgba(207, 181, 59, 0.15)',
+                  borderRight: `3px solid ${oldGold}`,
+                  '& .MuiListItemIcon-root': {
+                    color: oldGold
+                  },
+                  '& .MuiListItemText-primary': {
+                    color: oldGold,
+                    fontWeight: 'bold'
+                  }
+                },
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', minWidth: 40 }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontSize: '0.95rem',
+                  fontWeight: 500
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </>
+  );
+  
   return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#000' }}>
+      {/* App Bar */}
       <AppBar
         position="fixed"
         sx={{
-          zIndex: theme.zIndex.drawer + 1,
-          transition: theme.transitions.create(['width', 'margin'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-          ...(open && {
-            marginLeft: drawerWidth,
-            width: `calc(100% - ${drawerWidth}px)`,
-            transition: theme.transitions.create(['width', 'margin'], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-          }),
+          width: { md: `calc(100% - ${drawerOpen ? drawerWidth : 0}px)` },
+          ml: { md: drawerOpen ? `${drawerWidth}px` : 0 },
+          backgroundColor: '#000',
+          boxShadow: 'none',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.12)'
         }}
       >
         <Toolbar>
           <IconButton
             color="inherit"
             aria-label="open drawer"
-            onClick={handleDrawerToggle}
             edge="start"
-            sx={{ marginRight: 5 }}
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, color: oldGold, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Player Development Dashboard
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        variant="permanent"
-        open={open}
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          whiteSpace: 'nowrap',
-          boxSizing: 'border-box',
-          ...(open && {
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              transition: theme.transitions.create('width', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-              boxSizing: 'border-box',
-            },
-          }),
-          ...(!open && {
-            '& .MuiDrawer-paper': {
-              transition: theme.transitions.create('width', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
-              overflowX: 'hidden',
-              width: theme.spacing(7),
-              boxSizing: 'border-box',
-            },
-          }),
-        }}
-      >
-        <Toolbar
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            px: [1],
-          }}
-        >
-          <IconButton onClick={handleDrawerToggle}>
-            <ChevronLeftIcon />
-          </IconButton>
-        </Toolbar>
-        <Divider />
-        <List>
-          {menuItems.map((item) => (
-            <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                component={RouterLink}
-                to={item.path}
-                selected={location.pathname === item.path}
-                sx={{
-                  minHeight: 48,
-                  justifyContent: open ? 'initial' : 'center',
-                  px: 2.5,
-                }}
+          
+          <Box sx={{ flexGrow: 1 }} />
+          
+          {/* User menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Tooltip title="Account settings">
+              <IconButton
+                onClick={handleUserMenuOpen}
+                size="small"
+                aria-controls={userMenuOpen ? 'account-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={userMenuOpen ? 'true' : undefined}
               >
-                <ListItemIcon
+                <Avatar
                   sx={{
-                    minWidth: 0,
-                    mr: open ? 3 : 'auto',
-                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    backgroundColor: oldGold,
+                    color: '#000'
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  sx={{ opacity: open ? 1 : 0 }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Drawer>
+                  {getUserInitials()}
+                </Avatar>
+              </IconButton>
+            </Tooltip>
+            
+            <Typography
+              variant="body2"
+              sx={{
+                ml: 1,
+                display: { xs: 'none', sm: 'block' },
+                color: '#fff'
+              }}
+            >
+              {user?.email || 'User'}
+            </Typography>
+          </Box>
+          
+          <Menu
+            anchorEl={anchorEl}
+            id="account-menu"
+            open={userMenuOpen}
+            onClose={handleUserMenuClose}
+            PaperProps={{
+              sx: {
+                backgroundColor: '#121212',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                mt: 1.5,
+                '& .MuiMenuItem-root': {
+                  fontSize: '0.9rem',
+                  py: 1
+                }
+              }
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+      
+      {/* Sidebar */}
+      <Box
+        component="nav"
+        sx={{
+          width: { md: drawerWidth },
+          flexShrink: { md: 0 }
+        }}
+      >
+        {/* Mobile drawer */}
+        <Drawer
+          variant="temporary"
+          open={isMobile && drawerOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true // Better mobile performance
+          }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              backgroundColor: '#000',
+              color: '#fff',
+              borderRight: '1px solid rgba(255, 255, 255, 0.12)'
+            }
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+        
+        {/* Desktop drawer */}
+        <Drawer
+          variant="persistent"
+          open={drawerOpen}
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              backgroundColor: '#000',
+              color: '#fff',
+              borderRight: '1px solid rgba(255, 255, 255, 0.12)'
+            }
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      </Box>
+      
+      {/* Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8
+          width: { xs: '100%', md: `calc(100% - ${drawerOpen ? drawerWidth : 0}px)` },
+          ml: { md: drawerOpen ? `${drawerWidth}px` : 0 },
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen
+          }),
+          mt: '64px', // Toolbar height
+          backgroundColor: '#000',
+          color: '#fff',
+          minHeight: 'calc(100vh - 64px)'
         }}
       >
-        {children}
+        <Outlet />
       </Box>
     </Box>
   );
 };
 
-export default Layout; 
+export default Layout;

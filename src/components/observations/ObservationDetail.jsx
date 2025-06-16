@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase, TABLES } from '../../lib/supabase';
 import {
-  Box,
   Card,
   CardContent,
   Typography,
-  Grid,
-  Button,
-  Alert,
+  Box,
   CircularProgress,
-  TextField,
+  Alert,
+  Button
 } from '@mui/material';
-import { format } from 'date-fns';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { FaArrowLeft, FaEdit, FaUser, FaChalkboardTeacher, FaCalendarAlt, FaClipboardList, FaStar } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const ObservationDetail = () => {
   const { id } = useParams();
@@ -22,238 +22,86 @@ const ObservationDetail = () => {
   const [coach, setCoach] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedObservation, setEditedObservation] = useState(null);
 
   useEffect(() => {
-    const fetchObservationData = async () => {
+    const fetchData = async () => {
       try {
-        const { data: observationData, error: observationError } = await supabase
+        const { data: obsData, error: obsError } = await supabase
           .from(TABLES.OBSERVATIONS)
           .select('*')
           .eq('id', id)
           .single();
 
-        if (observationError) throw observationError;
+        if (obsError) throw obsError;
 
-        const { data: playerData, error: playerError } = await supabase
-          .from(TABLES.PLAYERS)
-          .select('*')
-          .eq('id', observationData.player_id)
-          .single();
+        const [
+          { data: playerData, error: playerError },
+          { data: coachData, error: coachError }
+        ] = await Promise.all([
+          supabase.from(TABLES.PLAYERS).select('*').eq('id', obsData.playerId).single(),
+          supabase.from(TABLES.COACHES).select('*').eq('id', obsData.coachId).single()
+        ]);
 
         if (playerError) throw playerError;
-
-        const { data: coachData, error: coachError } = await supabase
-          .from(TABLES.COACHES)
-          .select('*')
-          .eq('id', observationData.coach_id)
-          .single();
-
         if (coachError) throw coachError;
 
-        setObservation(observationData);
+        setObservation(obsData);
         setPlayer(playerData);
         setCoach(coachData);
-        setEditedObservation(observationData);
       } catch (error) {
-        console.error('Error fetching observation data:', error);
+        console.error('Error fetching data:', error);
         setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchObservationData();
+    fetchData();
   }, [id]);
 
-  const handleSave = async () => {
-    try {
-      const { error } = await supabase
-        .from(TABLES.OBSERVATIONS)
-        .update(editedObservation)
-        .eq('id', id);
-
-      if (error) throw error;
-      setObservation(editedObservation);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating observation:', error);
-      alert('Error updating observation: ' + error.message);
-    }
+  const getRatingColor = (rating) => {
+    if (rating >= 8) return 'text-green-600 bg-green-100 border-green-300';
+    if (rating >= 6) return 'text-yellow-600 bg-yellow-100 border-yellow-300';
+    return 'text-red-600 bg-red-100 border-red-300';
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this observation?')) {
-      try {
-        const { error } = await supabase
-          .from(TABLES.OBSERVATIONS)
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-        navigate('/observations');
-      } catch (error) {
-        console.error('Error deleting observation:', error);
-        alert('Error deleting observation: ' + error.message);
-      }
-    }
+  const getRatingDescription = (rating) => {
+    if (rating >= 9) return 'Excellent';
+    if (rating >= 8) return 'Very Good';
+    if (rating >= 7) return 'Good';
+    if (rating >= 6) return 'Satisfactory';
+    if (rating >= 5) return 'Needs Improvement';
+    return 'Poor';
   };
 
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
+    return <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px"><CircularProgress /></Box>;
   }
-
   if (error) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        Error loading observation: {error}
-      </Alert>
-    );
+    return <Box p={2}><Alert severity="error">Error loading observation: {error}</Alert></Box>;
   }
-
-  if (!observation || !player || !coach) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        Observation not found
-      </Alert>
-    );
+  if (!observation) {
+    return <Box p={2}><Alert severity="warning">Observation not found</Alert></Box>;
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Observation Details
-        </Typography>
-        <Box>
-          {isEditing ? (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                sx={{ mr: 1 }}
-              >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditedObservation(observation);
-                }}
-              >
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setIsEditing(true)}
-                sx={{ mr: 1 }}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
-            </>
-          )}
+    <Card>
+      <CardContent>
+        <Box display="flex" alignItems="center" mb={3}>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/observations')} sx={{ mr: 2 }}>Back</Button>
+          <Typography variant="h5">Observation Details</Typography>
         </Box>
-      </Box>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Player Information
-              </Typography>
-              <Typography>
-                Name: {player.first_name} {player.last_name}
-              </Typography>
-              <Typography>
-                Date of Birth: {format(new Date(player.date_of_birth), 'MM/dd/yyyy')}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Coach Information
-              </Typography>
-              <Typography>
-                Name: {coach.first_name} {coach.last_name}
-              </Typography>
-              <Typography>
-                Email: {coach.email}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Observation Details
-              </Typography>
-              {isEditing ? (
-                <>
-                  <TextField
-                    fullWidth
-                    label="Date"
-                    type="date"
-                    value={editedObservation.observation_date}
-                    onChange={(e) => setEditedObservation({
-                      ...editedObservation,
-                      observation_date: e.target.value
-                    })}
-                    margin="normal"
-                    InputLabelProps={{ shrink: true }}
-                  />
-                  <TextField
-                    fullWidth
-                    label="Notes"
-                    multiline
-                    rows={4}
-                    value={editedObservation.notes}
-                    onChange={(e) => setEditedObservation({
-                      ...editedObservation,
-                      notes: e.target.value
-                    })}
-                    margin="normal"
-                  />
-                </>
-              ) : (
-                <>
-                  <Typography>
-                    Date: {format(new Date(observation.observation_date), 'MM/dd/yyyy')}
-                  </Typography>
-                  <Typography>
-                    Notes: {observation.notes}
-                  </Typography>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+        <Box mb={2}>
+          <Typography variant="h6">Player: {player?.name || 'Unknown Player'}</Typography>
+          <Typography variant="subtitle1">Coach: {coach?.name || 'Unknown Coach'}</Typography>
+          <Typography variant="body2" color="textSecondary">Date: {new Date(observation.created_at).toLocaleDateString()}</Typography>
+        </Box>
+        <Box mb={2}>
+          <Typography variant="body1">{observation.notes}</Typography>
+        </Box>
+        {/* Add more fields as needed */}
+      </CardContent>
+    </Card>
   );
 };
 

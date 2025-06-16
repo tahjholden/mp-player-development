@@ -1,31 +1,54 @@
-import React from 'react';
-import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import React, { useState, useEffect } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const DEFAULT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28CFE', '#FF6699'];
 
-const PieChart = ({ data, dataKey, nameKey }) => {
+const PieChartComponent = ({ data }) => {
+  const [chartData, setChartData] = useState([]);
+  
+  useEffect(() => {
+    // If data is promise, resolve it
+    if (data && typeof data.then === 'function') {
+      const fetchData = async () => {
+        try {
+          const result = await data;
+          if (result && Array.isArray(result) && result.length > 0) {
+            setChartData(result);
+          }
+        } catch (error) {
+          console.error('Error fetching pie chart data:', error);
+        }
+      };
+      fetchData();
+    } else if (data && Array.isArray(data)) {
+      setChartData(data);
+    }
+  }, [data]);
+  
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <RechartsPieChart>
-        <Pie
-          data={data}
-          dataKey={dataKey}
-          nameKey={nameKey}
-          cx="50%"
-          cy="50%"
-          outerRadius={100}
-          fill="#8884d8"
-          label
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip />
-        <Legend />
-      </RechartsPieChart>
-    </ResponsiveContainer>
+    <div className="h-72">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip formatter={(value) => `${value}`} />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 
-export default PieChart; 
+export default PieChartComponent;

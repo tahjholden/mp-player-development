@@ -2,18 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase, TABLES } from '../../lib/supabase';
 import {
-  Box,
   Card,
   CardContent,
   Typography,
-  Grid,
-  Button,
-  Alert,
+  Box,
   CircularProgress,
-  TextField,
-  MenuItem,
+  Alert,
+  Button
 } from '@mui/material';
-import { format } from 'date-fns';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { FaArrowLeft, FaEdit, FaUser, FaCalendarAlt, FaFileAlt, FaChartLine, FaCheckCircle } from 'react-icons/fa';
+import { TbTarget } from 'react-icons/tb';
 
 const PDPDetail = () => {
   const { id } = useParams();
@@ -22,11 +21,10 @@ const PDPDetail = () => {
   const [player, setPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedPdp, setEditedPdp] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    const fetchPDPData = async () => {
+    const fetchData = async () => {
       try {
         const { data: pdpData, error: pdpError } = await supabase
           .from(TABLES.PDP)
@@ -46,49 +44,39 @@ const PDPDetail = () => {
 
         setPdp(pdpData);
         setPlayer(playerData);
-        setEditedPdp(pdpData);
       } catch (error) {
-        console.error('Error fetching PDP data:', error);
+        console.error('Error fetching data:', error);
         setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPDPData();
+    fetchData();
   }, [id]);
 
-  const handleSave = async () => {
-    try {
-      const { error } = await supabase
-        .from(TABLES.PDP)
-        .update(editedPdp)
-        .eq('id', id);
-
-      if (error) throw error;
-      setPdp(editedPdp);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating PDP:', error);
-      alert('Error updating PDP: ' + error.message);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'In Progress': return 'text-blue-600 bg-blue-100 border-blue-300';
+      case 'Review Due': return 'text-orange-600 bg-orange-100 border-orange-300';
+      case 'Completed': return 'text-green-600 bg-green-100 border-green-300';
+      default: return 'text-gray-600 bg-gray-100 border-gray-300';
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this PDP?')) {
-      try {
-        const { error } = await supabase
-          .from(TABLES.PDP)
-          .delete()
-          .eq('id', id);
+  const getProgressColor = (progress) => {
+    if (progress >= 80) return 'bg-green-500';
+    if (progress >= 60) return 'bg-blue-500';
+    if (progress >= 40) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
 
-        if (error) throw error;
-        navigate('/pdps');
-      } catch (error) {
-        console.error('Error deleting PDP:', error);
-        alert('Error deleting PDP: ' + error.message);
-      }
-    }
+  const calculateDaysRemaining = (endDate) => {
+    const today = new Date();
+    const end = new Date(endDate);
+    const diffTime = end - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (loading) {
@@ -101,134 +89,80 @@ const PDPDetail = () => {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        Error loading PDP: {error}
-      </Alert>
+      <Box p={2}>
+        <Alert severity="error">Error loading PDP: {error}</Alert>
+      </Box>
     );
   }
 
-  if (!pdp || !player) {
+  if (!pdp) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        PDP not found
-      </Alert>
+      <Box p={2}>
+        <Alert severity="warning">PDP not found</Alert>
+      </Box>
     );
   }
+
+  const daysRemaining = calculateDaysRemaining(pdp.endDate);
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          PDP Details
-        </Typography>
-        <Box>
-          {isEditing ? (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                sx={{ mr: 1 }}
-              >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditedPdp(pdp);
-                }}
-              >
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setIsEditing(true)}
-                sx={{ mr: 1 }}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
-            </>
-          )}
+    <Card>
+      <CardContent>
+        <Box display="flex" alignItems="center" mb={3}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/pdps')}
+            sx={{ mr: 2 }}
+          >
+            Back
+          </Button>
+          <Typography variant="h5">PDP Details</Typography>
         </Box>
-      </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Player Information
-              </Typography>
-              <Typography>
-                Name: {player.first_name} {player.last_name}
-              </Typography>
-              <Typography>
-                Date of Birth: {format(new Date(player.date_of_birth), 'MM/dd/yyyy')}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        <Box mb={3}>
+          <Typography variant="h6" gutterBottom>
+            Player: {player?.name || 'Unknown Player'}
+          </Typography>
+          <Typography variant="subtitle1" gutterBottom>
+            Title: {pdp.title}
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            Status: {pdp.status}
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            Progress: {pdp.progress}%
+          </Typography>
+        </Box>
 
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                PDP Information
+        <Box mb={3}>
+          <Typography variant="h6" gutterBottom>
+            Goals
+          </Typography>
+          {pdp.goals?.map((goal, index) => (
+            <Box key={index} mb={2}>
+              <Typography variant="subtitle1">
+                {goal.area}
               </Typography>
-              {isEditing ? (
-                <>
-                  <TextField
-                    fullWidth
-                    label="Status"
-                    select
-                    value={editedPdp.status}
-                    onChange={(e) => setEditedPdp({ ...editedPdp, status: e.target.value })}
-                    margin="normal"
-                  >
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="archived">Archived</MenuItem>
-                  </TextField>
-                  <TextField
-                    fullWidth
-                    label="Notes"
-                    multiline
-                    rows={4}
-                    value={editedPdp.notes}
-                    onChange={(e) => setEditedPdp({ ...editedPdp, notes: e.target.value })}
-                    margin="normal"
-                  />
-                </>
-              ) : (
-                <>
-                  <Typography>
-                    Status: {pdp.status}
-                  </Typography>
-                  <Typography>
-                    Created: {format(new Date(pdp.created_at), 'MM/dd/yyyy')}
-                  </Typography>
-                  <Typography>
-                    Notes: {pdp.notes}
-                  </Typography>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+              <Typography variant="body2" color="textSecondary">
+                {goal.description}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Timeline
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            Start Date: {new Date(pdp.startDate).toLocaleDateString()}
+          </Typography>
+          <Typography variant="body2" gutterBottom>
+            End Date: {new Date(pdp.endDate).toLocaleDateString()}
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 

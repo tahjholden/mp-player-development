@@ -22,12 +22,7 @@ export const TABLES = {
   PLAYERS: 'players',
   COACHES: 'coaches',
   OBSERVATIONS: 'observations',
-  PDP: 'pdp',
-  GROUPS: 'groups',
-  PARENTS: 'parents',
-  PLAYER_PARENTS: 'player_parents',
-  PLAYER_GROUPS: 'player_groups',
-  COACH_GROUPS: 'coach_groups',
+  PDP: 'pdp',                 // personal-development-plan
   ACTIVITY_LOG: 'activity_log'
 };
 
@@ -118,46 +113,6 @@ class PDPService extends DataService {
   }
 }
 
-class PlayerGroupService extends DataService {
-  constructor() {
-    super(TABLES.PLAYER_GROUPS);
-  }
-
-  async getGroupsForPlayer(playerId) {
-    try {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .select('*, groups(*)')
-        .eq('player_id', playerId);
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching player groups:', error);
-      return [];
-    }
-  }
-}
-
-class CoachGroupService extends DataService {
-  constructor() {
-    super(TABLES.COACH_GROUPS);
-  }
-
-  async getGroupsForCoach(coachId) {
-    try {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .select('*, groups(*)')
-        .eq('coach_id', coachId);
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching coach groups:', error);
-      return [];
-    }
-  }
-}
-
 class ActivityLogService extends DataService {
   constructor() {
     super(TABLES.ACTIVITY_LOG);
@@ -180,8 +135,6 @@ class ActivityLogService extends DataService {
 }
 
 export const pdpService = new PDPService();
-export const playerGroupService = new PlayerGroupService();
-export const coachGroupService = new CoachGroupService();
 export const activityLogService = new ActivityLogService();
 
 export const services = {
@@ -189,10 +142,45 @@ export const services = {
   coaches: new DataService(TABLES.COACHES),
   observations: new DataService(TABLES.OBSERVATIONS),
   pdps: pdpService,
-  groups: new DataService(TABLES.GROUPS),
-  parents: new DataService(TABLES.PARENTS),
-  playerParents: new DataService(TABLES.PLAYER_PARENTS),
-  playerGroups: playerGroupService,
-  coachGroups: coachGroupService,
   activityLog: activityLogService
 }; 
+
+/**
+ * VoiceService – simple wrapper around the Web Speech API (speechRecognition)
+ * Usage:
+ *   const vs = new VoiceService();
+ *   vs.start(({ transcript, isFinal }) => { ... });
+ *   vs.stop();
+ */
+export class VoiceService {
+  constructor() {
+    // eslint-disable-next-line no-undef
+    const SpeechRecognition =
+      typeof window !== 'undefined'
+        ? window.SpeechRecognition || window.webkitSpeechRecognition
+        : null;
+
+    this.isSupported = !!SpeechRecognition;
+    this.recognizer = this.isSupported ? new SpeechRecognition() : null;
+    if (this.recognizer) {
+      this.recognizer.continuous = true;
+      this.recognizer.interimResults = true;
+    }
+  }
+
+  start(callback) {
+    if (!this.isSupported || !this.recognizer) return;
+    this.recognizer.onresult = (event) => {
+      const { transcript } = event.results[event.results.length - 1][0];
+      const isFinal = event.results[event.results.length - 1].isFinal;
+      callback({ transcript, isFinal });
+    };
+    this.recognizer.start();
+  }
+
+  stop() {
+    if (this.recognizer) {
+      this.recognizer.stop();
+    }
+  }
+}

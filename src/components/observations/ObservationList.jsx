@@ -55,12 +55,12 @@ const ObservationList = () => {
 
   const getPlayerName = (playerId) => {
     const player = players.find(p => p.id === playerId);
-    return player ? `${player.first_name} ${player.last_name}` : 'Unknown Player';
+    return player ? player.name : 'Unknown Player';
   };
 
   const getCoachName = (coachId) => {
     const coach = coaches.find(c => c.id === coachId);
-    return coach ? `${coach.first_name} ${coach.last_name}` : 'Unknown Coach';
+    return coach ? coach.name : 'Unknown Coach';
   };
 
   return (
@@ -89,13 +89,13 @@ const ObservationList = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    {getPlayerName(observation.player_id)}
+                    {observation.summary}
                   </Typography>
                   <Typography variant="body2" color="textSecondary" gutterBottom>
                     Date: {format(new Date(observation.observation_date), 'MM/dd/yyyy')}
                   </Typography>
                   <Typography variant="body2" color="textSecondary" gutterBottom>
-                    Coach: {getCoachName(observation.coach_id)}
+                    Type: {observation.type}
                   </Typography>
                   <Box mt={2}>
                     <Button
@@ -116,4 +116,4 @@ const ObservationList = () => {
   );
 };
 
-export default ObservationList; 
+export default ObservationList;

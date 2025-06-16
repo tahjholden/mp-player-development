@@ -2,16 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { supabase, TABLES } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Button,
   Card,
   CardContent,
   Typography,
-  Grid,
-  Alert,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Button,
+  Box,
   CircularProgress,
+  Alert
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import {
+  Visibility as VisibilityIcon,
+  Add as AddIcon
+} from '@mui/icons-material';
 
 const CoachList = () => {
   const navigate = useNavigate();
@@ -20,42 +27,24 @@ const CoachList = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchCoaches = async () => {
+    const fetchData = async () => {
       try {
         const { data, error } = await supabase
           .from(TABLES.COACHES)
-          .select('*')
-          .order('last_name', { ascending: true });
+          .select('*');
 
         if (error) throw error;
         setCoaches(data || []);
       } catch (error) {
-        console.error('Error fetching coaches:', error);
+        console.error('Error fetching data:', error);
         setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCoaches();
+    fetchData();
   }, []);
-
-  const handleDelete = async (coachId) => {
-    if (window.confirm('Are you sure you want to delete this coach?')) {
-      try {
-        const { error } = await supabase
-          .from(TABLES.COACHES)
-          .delete()
-          .eq('id', coachId);
-
-        if (error) throw error;
-        setCoaches(coaches.filter(coach => coach.id !== coachId));
-      } catch (error) {
-        console.error('Error deleting coach:', error);
-        alert('Error deleting coach: ' + error.message);
-      }
-    }
-  };
 
   if (loading) {
     return (
@@ -67,66 +56,48 @@ const CoachList = () => {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        Error loading coaches: {error}
-      </Alert>
+      <Box p={2}>
+        <Alert severity="error">Error loading coaches: {error}</Alert>
+      </Box>
     );
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Coaches
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/coaches/new')}
-        >
-          Add Coach
-        </Button>
-      </Box>
-
-      <Grid container spacing={3}>
-        {coaches.map((coach) => (
-          <Grid item xs={12} sm={6} md={4} key={coach.id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  {coach.first_name} {coach.last_name}
-                </Typography>
-                <Typography color="textSecondary" gutterBottom>
-                  Email: {coach.email}
-                </Typography>
-                <Typography color="textSecondary" gutterBottom>
-                  Phone: {coach.phone}
-                </Typography>
-                <Box mt={2} display="flex" gap={1}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => navigate(`/coaches/${coach.id}`)}
-                  >
-                    View Details
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    size="small"
-                    onClick={() => handleDelete(coach.id)}
-                  >
-                    Delete
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
+    <Card>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h6">Coaches</Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/coaches/new')}
+          >
+            Add Coach
+          </Button>
+        </Box>
+        <List>
+          {coaches.map((coach) => (
+            <ListItem key={coach.id} divider>
+              <ListItemText
+                primary={coach.name}
+                secondary={coach.email}
+              />
+              <ListItemSecondaryAction>
+                <IconButton
+                  edge="end"
+                  aria-label="view coach"
+                  onClick={() => navigate(`/coaches/${coach.id}`)}
+                >
+                  <VisibilityIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
+        </List>
+      </CardContent>
+    </Card>
   );
 };
 
-export default CoachList; 
+export default CoachList;

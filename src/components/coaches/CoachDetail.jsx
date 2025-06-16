@@ -2,224 +2,107 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase, TABLES } from '../../lib/supabase';
 import {
-  Box,
   Card,
   CardContent,
   Typography,
-  Grid,
-  Button,
-  Alert,
+  Box,
   CircularProgress,
-  TextField,
+  Alert,
+  Button
 } from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 
 const CoachDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [coach, setCoach] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [observations, setObservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedCoach, setEditedCoach] = useState(null);
 
   useEffect(() => {
-    const fetchCoachData = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: coachData, error: coachError } = await supabase
           .from(TABLES.COACHES)
           .select('*')
           .eq('id', id)
           .single();
 
-        if (error) throw error;
-        setCoach(data);
-        setEditedCoach(data);
+        if (coachError) throw coachError;
+
+        const { data: playersData, error: playersError } = await supabase
+          .from(TABLES.PLAYERS)
+          .select('*')
+          .eq('coach_id', id);
+
+        if (playersError) throw playersError;
+
+        const { data: observationsData, error: observationsError } = await supabase
+          .from(TABLES.OBSERVATIONS)
+          .select('*')
+          .eq('coach_id', id);
+
+        if (observationsError) throw observationsError;
+
+        setCoach(coachData);
+        setPlayers(playersData || []);
+        setObservations(observationsData || []);
       } catch (error) {
-        console.error('Error fetching coach data:', error);
+        console.error('Error fetching data:', error);
         setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCoachData();
+    fetchData();
   }, [id]);
 
-  const handleSave = async () => {
-    try {
-      const { error } = await supabase
-        .from(TABLES.COACHES)
-        .update(editedCoach)
-        .eq('id', id);
-
-      if (error) throw error;
-      setCoach(editedCoach);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating coach:', error);
-      alert('Error updating coach: ' + error.message);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this coach?')) {
-      try {
-        const { error } = await supabase
-          .from(TABLES.COACHES)
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-        navigate('/coaches');
-      } catch (error) {
-        console.error('Error deleting coach:', error);
-        alert('Error deleting coach: ' + error.message);
-      }
-    }
-  };
-
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
+    return <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px"><CircularProgress /></Box>;
   }
-
   if (error) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        Error loading coach: {error}
-      </Alert>
-    );
+    return <Box p={2}><Alert severity="error">Error loading coach: {error}</Alert></Box>;
   }
-
   if (!coach) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        Coach not found
-      </Alert>
-    );
+    return <Box p={2}><Alert severity="warning">Coach not found</Alert></Box>;
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Coach Details
-        </Typography>
-        <Box>
-          {isEditing ? (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                sx={{ mr: 1 }}
-              >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditedCoach(coach);
-                }}
-              >
-                Cancel
-              </Button>
-            </>
+    <Card>
+      <CardContent>
+        <Box display="flex" alignItems="center" mb={3}>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/coaches')} sx={{ mr: 2 }}>Back</Button>
+          <Typography variant="h5">Coach Details</Typography>
+        </Box>
+        <Box mb={2}>
+          <Typography variant="h6">Name: {coach.name}</Typography>
+          <Typography variant="subtitle1">Email: {coach.email}</Typography>
+        </Box>
+        <Box mb={2}>
+          <Typography variant="h6">Assigned Players</Typography>
+          {players.length === 0 ? (
+            <Typography variant="body2">No players assigned.</Typography>
           ) : (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setIsEditing(true)}
-                sx={{ mr: 1 }}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
-            </>
+            players.map((player) => (
+              <Typography key={player.id} variant="body2">{player.name}</Typography>
+            ))
           )}
         </Box>
-      </Box>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Personal Information
-              </Typography>
-              {isEditing ? (
-                <>
-                  <TextField
-                    fullWidth
-                    label="First Name"
-                    value={editedCoach.first_name}
-                    onChange={(e) => setEditedCoach({
-                      ...editedCoach,
-                      first_name: e.target.value
-                    })}
-                    margin="normal"
-                  />
-                  <TextField
-                    fullWidth
-                    label="Last Name"
-                    value={editedCoach.last_name}
-                    onChange={(e) => setEditedCoach({
-                      ...editedCoach,
-                      last_name: e.target.value
-                    })}
-                    margin="normal"
-                  />
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    value={editedCoach.email}
-                    onChange={(e) => setEditedCoach({
-                      ...editedCoach,
-                      email: e.target.value
-                    })}
-                    margin="normal"
-                  />
-                  <TextField
-                    fullWidth
-                    label="Phone"
-                    value={editedCoach.phone}
-                    onChange={(e) => setEditedCoach({
-                      ...editedCoach,
-                      phone: e.target.value
-                    })}
-                    margin="normal"
-                  />
-                </>
-              ) : (
-                <>
-                  <Typography>
-                    Name: {coach.first_name} {coach.last_name}
-                  </Typography>
-                  <Typography>
-                    Email: {coach.email}
-                  </Typography>
-                  <Typography>
-                    Phone: {coach.phone}
-                  </Typography>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+        <Box mb={2}>
+          <Typography variant="h6">Observations</Typography>
+          {observations.length === 0 ? (
+            <Typography variant="body2">No observations for this coach.</Typography>
+          ) : (
+            observations.map((obs) => (
+              <Typography key={obs.id} variant="body2">{obs.notes}</Typography>
+            ))
+          )}
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 

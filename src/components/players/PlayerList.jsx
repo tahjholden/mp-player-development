@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase, TABLES } from '../../lib/supabase';
+import { playerService } from '../../lib/supabase';
 
 const PlayerList = () => {
   const [players, setPlayers] = useState([]);
@@ -10,19 +10,10 @@ const PlayerList = () => {
 
   useEffect(() => {
     const fetchPlayers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from(TABLES.PLAYERS)
-          .select('*');
-        
-        if (error) throw error;
-        setPlayers(data || []);
-        setFilteredPlayers(data || []);
-      } catch (error) {
-        console.error('Error fetching players:', error);
-      } finally {
-        setLoading(false);
-      }
+      const data = await playerService.getAll();
+      setPlayers(data);
+      setFilteredPlayers(data);
+      setLoading(false);
     };
     
     fetchPlayers();
@@ -35,7 +26,7 @@ const PlayerList = () => {
     }
     
     const filtered = players.filter(player => 
-      `${player.first_name} ${player.last_name}`.toLowerCase().includes(searchQuery.toLowerCase())
+      player.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
     setFilteredPlayers(filtered);
@@ -43,17 +34,9 @@ const PlayerList = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this player?')) {
-      try {
-        const { error } = await supabase
-          .from(TABLES.PLAYERS)
-          .delete()
-          .eq('id', id);
-        
-        if (error) throw error;
+      const success = await playerService.delete(id);
+      if (success) {
         setPlayers(players.filter(player => player.id !== id));
-      } catch (error) {
-        console.error('Error deleting player:', error);
-        alert('Failed to delete player');
       }
     }
   };
@@ -108,11 +91,11 @@ const PlayerList = () => {
           </thead>
           <tbody>
             {filteredPlayers.length > 0 ? (
-              filteredPlayers.filter(player => player && player.id).map((player) => (
+              filteredPlayers.map((player) => (
                 <tr key={player.id}>
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                     <Link to={`/players/${player.id}`} className="text-blue-600 hover:underline">
-                      {player.first_name} {player.last_name}
+                      {player.name || 'Unknown'}
                     </Link>
                   </td>
                   <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
@@ -151,4 +134,4 @@ const PlayerList = () => {
   );
 };
 
-export default PlayerList; 
+export default PlayerList;
