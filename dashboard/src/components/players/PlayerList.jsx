@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { playerService } from '../../lib/supabase';
+import { playerService } from '../../../../src/lib/supabase';
 
 const PlayerList = () => {
   const [players, setPlayers] = useState([]);

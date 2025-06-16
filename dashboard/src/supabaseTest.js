@@ -1,5 +1,5 @@
 // Test script to verify Supabase connection
-import { supabase, getTables, getTableData, listEndpoints, queryTablesDirectly } from './lib/supabase'
+import { supabase, getTables, getTableData, listEndpoints, queryTablesDirectly } from '../../src/lib/supabase'
 
 console.log('Testing Supabase connection...')
 

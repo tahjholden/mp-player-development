@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase, TABLES } from '../../lib/supabase';
+import { supabase, TABLES } from '../../../../src/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
