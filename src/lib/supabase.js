@@ -22,7 +22,7 @@ export const TABLES = {
   PLAYERS: 'players',
   COACHES: 'coaches',
   OBSERVATIONS: 'observations',
-  PDP: 'pdp',                 // personal-development-plan
+  PDP: 'pdps',                 // personal-development-plan table
   ACTIVITY_LOG: 'activity_log'
 };
 
