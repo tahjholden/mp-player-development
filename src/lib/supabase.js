@@ -23,8 +23,6 @@ export const TABLES = {
   COACHES: 'coaches',
   OBSERVATIONS: 'observations',
   PDP: 'pdp',                 // personal-development-plan
-  PARENTS: 'parents',
-  PLAYER_PARENTS: 'player_parents',
   ACTIVITY_LOG: 'activity_log'
 };
 
@@ -141,37 +139,7 @@ class PlayerService extends DataService {
     super(TABLES.PLAYERS);
   }
 
-  async getPlayerWithParents(playerId) {
-    try {
-      const player = await this.getById(playerId);
-      if (!player) return null;
-
-      const { data: playerParents, error } = await supabase
-        .from(TABLES.PLAYER_PARENTS)
-        .select('parent_id')
-        .eq('player_id', playerId);
-
-      if (error) throw error;
-
-      const parentIds = playerParents.map(pp => pp.parent_id);
-      let parents = [];
-
-      if (parentIds.length > 0) {
-        const { data: parentData, error: parentsError } = await supabase
-          .from(TABLES.PARENTS)
-          .select('*')
-          .in('id', parentIds);
-
-        if (parentsError) throw parentsError;
-        parents = parentData;
-      }
-
-      return { player, parents };
-    } catch (error) {
-      console.error('Error fetching player with parents:', error);
-      return null;
-    }
-  }
+  // Future methods for fetching related data can be added here
 
   async getPlayerWithPDP(playerId) {
     try {
