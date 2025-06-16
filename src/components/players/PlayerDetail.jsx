@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { playerService, parentService } from '../../lib/supabase';
+import { playerService } from '../../lib/supabase';
 
 const PlayerDetail = () => {
   const { id } = useParams();
@@ -15,17 +15,15 @@ const PlayerDetail = () => {
   });
   
   const [loading, setLoading] = useState(!isNew);
-  const [parents, setParents] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchPlayerData = async () => {
       if (!isNew) {
-        const data = await playerService.getPlayerWithParents(id);
+        const data = await playerService.getById(id);
         if (data) {
-          setPlayer(data.player);
-          setParents(data.parents || []);
+          setPlayer(data);
         }
         setLoading(false);
       }
@@ -145,24 +143,7 @@ const PlayerDetail = () => {
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           />
         </div>
-        
-        {!isNew && (
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Parents</h3>
-            {parents.length > 0 ? (
-              <ul className="bg-gray-50 rounded border p-4">
-                {parents.map(parent => (
-                  <li key={parent.id} className="mb-1">
-                    {parent.first_name} {parent.last_name} - {parent.email || 'No email'}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500">No parents assigned</p>
-            )}
-          </div>
-        )}
-        
+
         <div className="flex items-center justify-end">
           <button
             type="button"

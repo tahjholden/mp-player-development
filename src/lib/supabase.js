@@ -29,10 +29,11 @@ export const TABLES = {
   PARENTS: 'parents',
   PDP: 'pdp',
   OBSERVATIONS: 'observations',
-  PLAYER_PARENTS: 'player_parents',
+codex/consolidate-supabase.js-implementation
   PLAYER_GROUPS: 'player_groups',
   COACH_GROUPS: 'coach_groups',
   GROUPS: 'groups',
+  PDP: 'pdp',
   ACTIVITY_LOG: 'activity_log'
 };
 
